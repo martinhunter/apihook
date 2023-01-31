@@ -1,3 +1,4 @@
+import copy
 import re
 from functools import wraps
 from inspect import signature, ismodule, isclass, isfunction
@@ -144,6 +145,9 @@ class ApiHookers(HookContextMixin):
 
     def add_hook(self, target: str, includes: List[str] = None, exclude_regex: str = '_.*', injection=TestInjection):
         self.hookers.append(api_hooker(target, includes, exclude_regex, injection))
+
+    def add(self, hooker: ApiHooker):
+        self.hookers.append(copy.copy(hooker))
 
     def rm_hook(self, hooker: ApiHooker):
         self.hookers.remove(hooker)
