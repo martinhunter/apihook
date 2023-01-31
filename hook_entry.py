@@ -3,7 +3,7 @@ from functools import wraps
 from inspect import signature, ismodule, isclass, isfunction
 from typing import List
 
-from .injections import TestInjection
+from injections import TestInjection
 
 
 def _dot_lookup(thing, comp, import_path):
