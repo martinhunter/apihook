@@ -64,9 +64,15 @@ def _hook_wrapper(inject_cls=TestInjection, is_cls=True):
                 if inject_cls:
                     injection = inject_cls(func)
                     injection.start(*args, **kwargs)
-                    result = await func(*args, **kwargs)
-                    injection.end(result)
-                    return result
+                    if injection.skip_func:
+                        return injection.end(None)
+                    else:
+                        result = await func(*args, **kwargs)
+                        new_result = injection.end(result)
+                        if injection.change_result:
+                            return new_result
+                        else:
+                            return result
                 else:
                     return await func(*args, **kwargs)
         else:
@@ -77,9 +83,15 @@ def _hook_wrapper(inject_cls=TestInjection, is_cls=True):
                 if inject_cls:
                     injection = inject_cls(func)
                     injection.start(*args, **kwargs)
-                    result = func(*args, **kwargs)
-                    injection.end(result)
-                    return result
+                    if injection.skip_func:
+                        return injection.end(None)
+                    else:
+                        result = func(*args, **kwargs)
+                        new_result = injection.end(result)
+                        if injection.change_result:
+                            return new_result
+                        else:
+                            return result
                 else:
                     return func(*args, **kwargs)
 

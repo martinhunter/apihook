@@ -2,6 +2,9 @@ from loguru import logger
 
 
 class InjectionBase:
+    skip_func = False
+    change_result = False
+
     def __init__(self, func):
         self.func = func
 
