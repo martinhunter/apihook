@@ -1,7 +1,7 @@
 import copy
 import re
 from functools import wraps
-from inspect import signature, ismodule, isclass, isfunction
+from inspect import signature, ismodule, isclass, isfunction, iscoroutine, iscoroutinefunction
 from typing import List
 
 from injections import TestInjection
@@ -39,18 +39,32 @@ def _get_target(target):
 
 def _hook_wrapper(inject_cls=TestInjection, is_cls=True):
     def middle(func):
-        @wraps(func)
-        def inner(*args, **kwargs):
-            if is_cls and not signature(func).parameters.get('self'):  # 修正classmethod和staticmethod
-                args = args[1:]  # TODO: 复制行为是否会出错？
-            if inject_cls:
-                injection = inject_cls(func)
-                injection.start(*args, **kwargs)
-                result = func(*args, **kwargs)
-                injection.end(result)
-                return result
-            else:
-                return func(*args, **kwargs)
+        if iscoroutinefunction(func):
+            @wraps(func)
+            async def inner(*args, **kwargs):
+                if is_cls and not signature(func).parameters.get('self'):  # 修正classmethod和staticmethod
+                    args = args[1:]  # TODO: 复制行为是否会出错？
+                if inject_cls:
+                    injection = inject_cls(func)
+                    injection.start(*args, **kwargs)
+                    result = await func(*args, **kwargs)
+                    injection.end(result)
+                    return result
+                else:
+                    return await func(*args, **kwargs)
+        else:
+            @wraps(func)
+            def inner(*args, **kwargs):
+                if is_cls and not signature(func).parameters.get('self'):  # 修正classmethod和staticmethod
+                    args = args[1:]  # TODO: 复制行为是否会出错？
+                if inject_cls:
+                    injection = inject_cls(func)
+                    injection.start(*args, **kwargs)
+                    result = func(*args, **kwargs)
+                    injection.end(result)
+                    return result
+                else:
+                    return func(*args, **kwargs)
 
         return inner
 
