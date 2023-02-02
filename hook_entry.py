@@ -1,8 +1,8 @@
 import copy
 import re
 from functools import wraps
-from inspect import signature, ismodule, isclass, isfunction, iscoroutine, iscoroutinefunction
-from typing import List
+from inspect import signature, ismodule, isclass, isfunction, iscoroutinefunction
+from typing import List, Any
 
 from injections import TestInjection
 
@@ -35,6 +35,23 @@ def _get_target(target):
             f"Need a valid target to patch. You supplied: {target!r}")
     getter = lambda: _importer(target)
     return getter, attribute
+
+
+def _get_target_by_type(target):
+    if isinstance(target, str):
+        getter, cls_module_name = _get_target(target)
+        module = getter()
+        attr = getattr(module, cls_module_name)
+    elif isclass(target) or isfunction(target):
+        import sys
+        module = sys.modules[target.__module__]
+        attr = target
+    elif ismodule(target):
+        module = None  # get namespace if unnecessary
+        attr = target
+    else:
+        raise Exception('target type {} is not acceptable'.format(type(target)))
+    return module, attr
 
 
 def _hook_wrapper(inject_cls=TestInjection, is_cls=True):
@@ -87,7 +104,7 @@ class HookContextMixin:
 
 
 class Target:
-    def __init__(self, target: str, includes: List[str] = None, exclude_regex: str = '_.*', injection=None):
+    def __init__(self, target: Any, includes: List[str] = None, exclude_regex: str = '_.*', injection=None):
         self.target = target
         self.includes = includes
         self.exclude_regex = re.compile(exclude_regex)
@@ -101,10 +118,7 @@ class Target:
         return func_names
 
     def get_target(self):
-        getter, cls_module_name = _get_target(self.target)
-        module = getter()
-        attr = getattr(module, cls_module_name)
-        return module, attr
+        return _get_target_by_type(self.target)
 
 
 class ApiHooker(HookContextMixin):
@@ -157,7 +171,7 @@ class ApiHookers(HookContextMixin):
     def __init__(self, hookers: List[ApiHooker] = None):
         self.hookers = hookers or []
 
-    def add_hook(self, target: str, includes: List[str] = None, exclude_regex: str = '_.*', injection=TestInjection):
+    def add_hook(self, target: Any, includes: List[str] = None, exclude_regex: str = '_.*', injection=TestInjection):
         self.hookers.append(api_hooker(target, includes, exclude_regex, injection))
 
     def add(self, hooker: ApiHooker):
@@ -176,7 +190,7 @@ class ApiHookers(HookContextMixin):
             hooker.end_hook()
 
 
-def api_hooker(target: str, includes: List[str] = None, exclude_regex: str = '_.*', injection=TestInjection):
+def api_hooker(target: Any, includes: List[str] = None, exclude_regex: str = '_.*', injection=TestInjection):
     """
     hook specified functions
     :param target: the module/cls to be hooked

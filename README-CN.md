@@ -41,5 +41,5 @@ with hookers:  # 离开作用域后恢复
 1. DONE p0 支持协程
 2. p1 测试多线程是否安全
 3. p0 支持需hook的函数配置为yaml，通过运行不同的配置记录不同信息，配置为空则等同于未hook任何函数
-4. p0 hooker的target参数支持传入模块/类（现只能是字符串）
-    1. 代码迭代时由于hook的target是字符串，无法使用pycharm的find usage 和 refactor
+4. p0 hooker的target参数~~支持传入模块/类（现只能是字符串）~~现支持传入字符串/模块/类/函数
+    ~~1. 代码迭代时由于hook的target是字符串，无法使用pycharm的find usage 和 refactor~~
