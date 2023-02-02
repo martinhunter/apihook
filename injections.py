@@ -5,6 +5,12 @@ class InjectionBase:
     def __init__(self, func):
         self.func = func
 
+    def start(self, *args, **kwargs):
+        self.hook_start(*args, **kwargs)
+
+    def end(self, result):
+        self.hook_end(result)
+
     def hook_start(self, *args, **kwargs):
         raise NotImplemented
 
@@ -25,7 +31,16 @@ class LogInjectionBase(InjectionBase):
 
     def __init__(self, func):
         super().__init__(func)
-        self.logger = logger.add(self.file)
+
+    def start(self, *args, **kwargs):
+        logger_id = logger.add(self.file)
+        self.hook_start(*args, **kwargs)
+        logger.remove(logger_id)
+
+    def end(self, result):
+        logger_id = logger.add(self.file)
+        self.hook_end(result)
+        logger.remove(logger_id)
 
     def hook_start(self, *args, **kwargs):
         msg = '{} {} {}'.format(self.func.__name__, *args, **kwargs)
@@ -34,4 +49,3 @@ class LogInjectionBase(InjectionBase):
     def hook_end(self, result):
         msg = '{} {}'.format(self.func.__name__, result)
         logger.info(msg)
-        logger.remove(self.logger)

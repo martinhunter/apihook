@@ -45,9 +45,9 @@ def _hook_wrapper(inject_cls=TestInjection, is_cls=True):
                 args = args[1:]  # TODO: 复制行为是否会出错？
             if inject_cls:
                 injection = inject_cls(func)
-                injection.hook_start(*args, **kwargs)
+                injection.start(*args, **kwargs)
                 result = func(*args, **kwargs)
-                injection.hook_end(result)
+                injection.end(result)
                 return result
             else:
                 return func(*args, **kwargs)
