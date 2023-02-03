@@ -37,6 +37,12 @@ def _get_target(target):
     return getter, attribute
 
 
+def _get_attr(target):
+    getter, cls_module_name = _get_target(target)
+    module = getter()
+    return getattr(module, cls_module_name)
+
+
 def _get_target_by_type(target):
     if isinstance(target, str):
         getter, cls_module_name = _get_target(target)
@@ -120,7 +126,13 @@ class Target:
         self.target = target
         self.includes = includes
         self.exclude_regex = re.compile(exclude_regex)
-        self.injection = injection
+        self.injection = self.parse_injection(injection)
+
+    @staticmethod
+    def parse_injection(injection):
+        if isinstance(injection, str):
+            return _get_attr(injection)
+        return injection
 
     def get_func_names(self, cls):
         if self.includes:

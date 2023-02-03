@@ -5,25 +5,20 @@ hook_project:
     - target: part2
       attrs:
         includes:
-        - par2_normal
+        - part2_normal
       ns:
+      - target: Part2
+        attrs:
+          includes:
+            - cls2
+          injection:
+            temp_inj.TestInjection2
       - target: Part2
         attrs:
           includes:
           - cls2
           - func2
           - sta2
-      - target: Part4
-      - target: Part3
-        attrs:
-          includes:
-          - cls2
-          - func2
-          - sta2
-    - target: part3
-      attrs:
-        includes:
-          - par2_normal
   - target: temp_async
     ns:
       target: part2

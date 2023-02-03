@@ -3,6 +3,8 @@ from collections import OrderedDict
 import yaml
 import yamlloader
 
+from hook_entry import multi_hooker
+
 
 def _load_yaml(filename):
     with open(filename, mode='r', encoding='utf-8') as yaml_file:
@@ -16,15 +18,15 @@ def _dump_yaml(data, filename):
         return data
 
 
-def recursive_parse(data, container, prefix=''):
+def _recursive_parse(data, prefix=''):
     if isinstance(data, OrderedDict):
         data = [data]
-    print(data)
     for item in data:
-        new_prefix = prefix
+        new_prefix = prefix  # copy to avoid modify shared variable in loops
         attrs = item.get('attrs')
         target = item.get('target')
         ns = item.get('ns')
+
         if target:
             if new_prefix:
                 new_prefix += '.' + target
@@ -33,21 +35,47 @@ def recursive_parse(data, container, prefix=''):
         if attrs or not ns:
             if not target:
                 raise Exception('target not exist in ns: {} for attrs: {}'.format(new_prefix, attrs))
-            container.append({'target': new_prefix, 'attrs': attrs})
+            yield {'target': new_prefix, 'attrs': attrs}
         if ns:
-            recursive_parse(ns, container, new_prefix)
+            yield from _recursive_parse(ns, new_prefix)
 
 
 def parse_yaml(filename):
     loaded = _load_yaml(filename)
-    projects = {}
     for k, v in loaded.items():
-        container = []
-        projects[k] = recursive_parse(v, container)
-        for item in container:
-            print(item)
+        if k == 'hook_project':
+            return _recursive_parse(v)
 
-    return projects
+
+def yaml_hookers(filename):
+    """
+    yaml ns list order matters if you want to apply multiple injection on the same function
+    e.g.
+    ns:
+      - target: Part2
+        attrs:
+          includes:
+            - cls2
+      - target: Part2
+        attrs:
+          includes:
+          - cls2
+          - func2
+          - sta2
+    :param filename:
+    :return:
+    """
+    hookers = multi_hooker()
+    for item in parse_yaml(filename):
+        target: str = item['target']
+        kwargs: dict = item['attrs']
+        print(target, kwargs)
+        if kwargs:
+            hookers.add_hook(target=target, **kwargs)
+        else:
+            hookers.add_hook(target=target)
+    return hookers
+
 
 if __name__ == '__main__':
-    parse_yaml('example.yaml')
+    print(yaml_hookers('example.yaml'))
