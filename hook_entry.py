@@ -147,6 +147,8 @@ class ApiHooker(HookContextMixin):
 
     def hook_func(self, module, func_name):
         func = getattr(module, func_name)
+        if isclass(func):
+            raise Exception('{} is a class, not func in module {}'.format(func_name, module))
         import sys
         for module_name, module_pack in sys.modules.items():
             if module_name.startswith('_'):

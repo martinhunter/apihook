@@ -1,0 +1,37 @@
+hook_project:
+  ns:
+  - target: temp
+    ns:
+    - target: part2
+      attrs:
+        includes:
+        - par2_normal
+      ns:
+      - target: Part2
+        attrs:
+          includes:
+          - cls2
+          - func2
+          - sta2
+      - target: Part4
+      - target: Part3
+        attrs:
+          includes:
+          - cls2
+          - func2
+          - sta2
+    - target: part3
+      attrs:
+        includes:
+          - par2_normal
+  - target: temp_async
+    ns:
+      target: part2
+      ns:
+        target: Part2
+        attrs:
+          includes:
+          - cls2
+          - func2
+          - sta2
+
