@@ -4,7 +4,7 @@ from functools import wraps
 from inspect import signature, ismodule, isclass, isfunction, iscoroutinefunction
 from typing import List, Any
 
-from injections import TestInjection
+from injections import TestInjection, InjectionDataBase
 
 
 def _dot_lookup(thing, comp, import_path):
@@ -60,52 +60,6 @@ def _get_target_by_type(target):
     return module, attr
 
 
-def _hook_wrapper(inject_cls=TestInjection, is_cls=True):
-    def middle(func):
-        if iscoroutinefunction(func):
-            @wraps(func)
-            async def inner(*args, **kwargs):
-                if is_cls and not signature(func).parameters.get('self'):  # 修正classmethod和staticmethod
-                    args = args[1:]  # TODO: 复制行为是否会出错？
-                if inject_cls:
-                    injection = inject_cls(func)
-                    injection.start(*args, **kwargs)
-                    if injection.skip_func:
-                        return injection.end(None)
-                    else:
-                        result = await func(*args, **kwargs)
-                        new_result = injection.end(result)
-                        if injection.change_result:
-                            return new_result
-                        else:
-                            return result
-                else:
-                    return await func(*args, **kwargs)
-        else:
-            @wraps(func)
-            def inner(*args, **kwargs):
-                if is_cls and not signature(func).parameters.get('self'):  # 修正classmethod和staticmethod
-                    args = args[1:]  # TODO: 复制行为是否会出错？
-                if inject_cls:
-                    injection = inject_cls(func)
-                    injection.start(*args, **kwargs)
-                    if injection.skip_func:
-                        return injection.end(None)
-                    else:
-                        result = func(*args, **kwargs)
-                        new_result = injection.end(result)
-                        if injection.change_result:
-                            return new_result
-                        else:
-                            return result
-                else:
-                    return func(*args, **kwargs)
-
-        return inner
-
-    return middle
-
-
 class HookContextMixin:
     def start_hook(self):
         raise NotImplemented
@@ -122,11 +76,13 @@ class HookContextMixin:
 
 
 class Target:
-    def __init__(self, target: Any, includes: List[str] = None, exclude_regex: str = '_.*', injection=None):
+    def __init__(self, target: Any, includes: List[str] = None, exclude_regex: str = '_.*',
+                 injection=TestInjection, injection_data=None):
         self.target = target
         self.includes = includes
         self.exclude_regex = re.compile(exclude_regex)
         self.injection = self.parse_injection(injection)
+        self.injection_data = injection_data
 
     @staticmethod
     def parse_injection(injection):
@@ -145,6 +101,60 @@ class Target:
         return _get_target_by_type(self.target)
 
 
+def _hook_wrapper(target: Target, is_cls=True):
+    def middle(func):
+        if iscoroutinefunction(func):
+            @wraps(func)
+            async def inner(*args, **kwargs):
+                if is_cls and not signature(func).parameters.get('self'):  # 修正classmethod和staticmethod
+                    args = args[1:]  # TODO: 复制行为是否会出错？
+                injection_cls = target.injection
+                if injection_cls:
+                    if issubclass(injection_cls, InjectionDataBase):
+                        injection = injection_cls(func, target.injection_data)
+                    else:
+                        injection = injection_cls(func)
+                    injection.start(*args, **kwargs)
+                    if injection.skip_func:
+                        return injection.end(None)
+                    else:
+                        result = await func(*args, **kwargs)
+                        new_result = injection.end(result)
+                        if injection.change_result:
+                            return new_result
+                        else:
+                            return result
+                else:
+                    return await func(*args, **kwargs)
+        else:
+            @wraps(func)
+            def inner(*args, **kwargs):
+                if is_cls and not signature(func).parameters.get('self'):  # 修正classmethod和staticmethod
+                    args = args[1:]  # TODO: 复制行为是否会出错？
+                injection_cls = target.injection
+                if injection_cls:
+                    if issubclass(injection_cls, InjectionDataBase):
+                        injection = injection_cls(func, target.injection_data)
+                    else:
+                        injection = injection_cls(func)
+                    injection.start(*args, **kwargs)
+                    if injection.skip_func:
+                        return injection.end(None)
+                    else:
+                        result = func(*args, **kwargs)
+                        new_result = injection.end(result)
+                        if injection.change_result:
+                            return new_result
+                        else:
+                            return result
+                else:
+                    return func(*args, **kwargs)
+
+        return inner
+
+    return middle
+
+
 class ApiHooker(HookContextMixin):
     def __init__(self, target: Target):
         self.target = target
@@ -153,7 +163,7 @@ class ApiHooker(HookContextMixin):
     def hook_cls(self, cls):
         for func_name in self.target.get_func_names(cls):
             func = getattr(cls, func_name)
-            wrapped_func = _hook_wrapper(self.target.injection, is_cls=True)(func)
+            wrapped_func = _hook_wrapper(self.target, is_cls=True)(func)
             self.original_attrs.append([cls, func_name, cls.__dict__[func_name]])
             setattr(cls, func_name, wrapped_func)
 
@@ -167,7 +177,7 @@ class ApiHooker(HookContextMixin):
                 continue
             for other_func_name, other_func in module_pack.__dict__.items():
                 if other_func_name == func_name and other_func == func:
-                    wrapped_func = _hook_wrapper(self.target.injection, is_cls=False)(func)
+                    wrapped_func = _hook_wrapper(self.target, is_cls=False)(func)
                     self.original_attrs.append([module_pack, func_name, func])
                     setattr(module_pack, func_name, wrapped_func)
 
@@ -197,7 +207,8 @@ class ApiHookers(HookContextMixin):
     def __init__(self, hookers: List[ApiHooker] = None):
         self.hookers = hookers or []
 
-    def add_hook(self, target: Any, includes: List[str] = None, exclude_regex: str = '_.*', injection=TestInjection):
+    def add_hook(self, target: Any, includes: List[str] = None, exclude_regex: str = '_.*',
+                 injection=TestInjection, injection_data=None):
         self.hookers.append(api_hooker(target, includes, exclude_regex, injection))
 
     def add(self, hooker: ApiHooker):
@@ -216,7 +227,8 @@ class ApiHookers(HookContextMixin):
             hooker.end_hook()
 
 
-def api_hooker(target: Any, includes: List[str] = None, exclude_regex: str = '_.*', injection=TestInjection):
+def api_hooker(target: Any, includes: List[str] = None, exclude_regex: str = '_.*',
+               injection=TestInjection, injection_data=None):
     """
     hook specified functions
     :param target: the module/cls to be hooked
@@ -225,7 +237,7 @@ def api_hooker(target: Any, includes: List[str] = None, exclude_regex: str = '_.
     :param injection: your hook class
     :return: hooker object
     """
-    target_object = Target(target, includes, exclude_regex, injection)
+    target_object = Target(target, includes, exclude_regex, injection, injection_data)
     return ApiHooker(target_object)
 
 
