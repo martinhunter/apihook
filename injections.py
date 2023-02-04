@@ -18,10 +18,10 @@ class InjectionBase:
             return new_result
 
     def hook_start(self, *args, **kwargs):
-        pass
+        pass  # pragma no cover
 
     def hook_end(self, result):
-        pass
+        pass  # pragma no cover
 
 
 class TestInjection(InjectionBase):

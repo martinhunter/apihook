@@ -75,10 +75,10 @@ def get_target_name(name):
 
 class HookContextMixin:
     def start_hook(self):
-        raise NotImplemented
+        raise NotImplemented  # pragma no cover
 
     def end_hook(self):
-        raise NotImplemented
+        raise NotImplemented  # pragma no cover
 
     def __enter__(self):
         self.start_hook()
