@@ -137,7 +137,6 @@ def yaml_hookers(filename):
     for item in parse_yaml(filename):
         target: str = item['target']
         kwargs: dict = item['attrs']
-        print(target, kwargs)
         if kwargs:
             hookers.add_hook(target=target, **kwargs)
         else:

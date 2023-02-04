@@ -1,0 +1,26 @@
+from .part2 import Part2, part2_normal, part2_normalx, unhooked
+
+
+class Part1:
+    def one(self):
+        part2 = Part2()
+        part2.cls2()
+        part2.func2()
+        part2.sta2()
+        part2.unhooked()
+
+        part2_normal()
+        part2_normalx()
+        unhooked()
+
+    @classmethod
+    def two(cls):
+        part2 = Part2()
+        part2.cls2()
+        part2.func2()
+        part2.sta2()
+        part2.unhooked()
+
+        part2_normal()
+        part2_normalx()
+        unhooked()

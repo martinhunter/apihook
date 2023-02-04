@@ -133,7 +133,7 @@ def _hook_wrapper(target: Target, cls_name=''):
         if iscoroutinefunction(func):
             @wraps(func)
             async def inner(*args, **kwargs):
-                if cls_name and not signature(func).parameters.get('self'):  # 修正classmethod和staticmethod
+                if cls_name and not signature(func).parameters.get('self'):  # fix classmethod and staticmethod
                     args = args[1:]  # TODO: 复制行为是否会出错？
                 injection_cls = target.injection
                 if injection_cls:
@@ -157,7 +157,7 @@ def _hook_wrapper(target: Target, cls_name=''):
         else:
             @wraps(func)
             def inner(*args, **kwargs):
-                if cls_name and not signature(func).parameters.get('self'):  # 修正classmethod和staticmethod
+                if cls_name and not signature(func).parameters.get('self'):  # fix classmethod and staticmethod
                     args = args[1:]  # TODO: 复制行为是否会出错？
                 injection_cls = target.injection
                 if injection_cls:

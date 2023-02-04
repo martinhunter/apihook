@@ -1,12 +1,16 @@
 from yaml_parser import yaml_hookers
-from temp.entry import run
+import unittest
+from test.hook_project import run
 
 
-def main():
-    with yaml_hookers('../example.yaml'):
+class TestYamlHookEntry(unittest.TestCase):
+    def test_integrated(self):
+        with yaml_hookers('./hook_project/example.yaml'):
+            run()
         run()
-    run()
+
+
 
 
 if __name__ == '__main__':
-    main()
+    unittest.main()
