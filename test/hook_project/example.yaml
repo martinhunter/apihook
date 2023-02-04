@@ -5,7 +5,7 @@ hook_project:
     - target: part2
       attrs:
         includes:
-        - part2_normal
+        - part2_normalx
       ns:
       - target: Part2
         attrs:
@@ -19,14 +19,4 @@ hook_project:
           - cls2
           - func2
           - sta2
-  - target: temp_async
-    ns:
-      target: part2
-      ns:
-        target: Part2
-        attrs:
-          includes:
-          - cls2
-          - func2
-          - sta2
-
+      - target: part2_normal

@@ -1,9 +1,10 @@
 from collections import OrderedDict
+from typing import Union
 
 import yaml
 import yamlloader
 
-from hook_entry import multi_hooker
+from hook_entry import multi_hooker, Target, ApiHooker, ApiHookers, get_target_name
 
 
 def _load_yaml(filename):
@@ -16,6 +17,64 @@ def _dump_yaml(data, filename):
     with open(filename, mode='w', encoding='utf-8') as yaml_file:
         data = yaml.dump(data, yaml_file, Dumper=yamlloader.ordereddict.CDumper)
         return data
+
+
+def _create_yaml_attrs(target: Target):
+    di = OrderedDict()
+    if target.includes:
+        di['includes'] = target.includes
+    if target.injection:
+        di['injection'] = get_target_name(target.injection)
+    if target.exclude_regex:
+        di['exclude_regex'] = target.exclude_regex.pattern
+    return di
+
+
+def _merge_target(hookers):
+    def recurse(target_names, parent):
+        target, targets_list = target_names
+        if target:
+            parent['target'] = target
+        parent['ns'] = []
+
+        di = OrderedDict()
+        for target_name, target_object in targets_list:
+            li = target_name.split('.', maxsplit=1)
+            if len(li) == 1:
+                obj = OrderedDict()
+                obj['target'] = li[0]
+                obj['attrs'] = _create_yaml_attrs(target_object)
+                parent['ns'].append(obj)
+            else:
+                ns, rest = li
+                if ns not in di:
+                    di[ns] = []
+                di[ns].append([rest, target_object])
+        for ns, v in di.items():
+            for item in parent['ns']:
+                if item.get('target') == ns:
+                    obj = item
+                    break
+            else:
+                obj = OrderedDict()
+                parent['ns'].append(obj)
+            recurse([ns, v], obj)
+        if len(parent['ns']) == 0:
+            parent['ns'] = parent['ns'][0]
+
+    container = OrderedDict()
+    targets = ["", [[hooker.target.target_name, hooker.target] for hooker in hookers]]
+    recurse(targets, container)
+    return OrderedDict({"hook_project": container})
+
+
+def yaml_dump_hookers(hookers: Union[ApiHookers, ApiHooker], file):
+    if isinstance(hookers, ApiHookers):
+        hookers = hookers.hookers
+    else:
+        hookers = [hookers]
+    yaml_dict = _merge_target(hookers)
+    _dump_yaml(yaml_dict, file)
 
 
 def _recursive_parse(data, prefix=''):

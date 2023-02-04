@@ -60,6 +60,16 @@ def _get_target_by_type(target):
         raise Exception('target type {} is not acceptable'.format(type(target)))
     return module, attr
 
+def get_target_name(name):
+    if isinstance(name, str):
+        target_name = name
+    else:
+        module, target = _get_target_by_type(name)
+        if ismodule(target):
+            target_name = target.__name__
+        else:
+            target_name = module.__name__ + '.' + target.__name__
+    return target_name
 
 class HookContextMixin:
     def start_hook(self):
@@ -77,14 +87,15 @@ class HookContextMixin:
 
 
 class Target:
-    def __init__(self, target: Any, includes: List[str] = None, exclude_regex: str = '_.*',
+    def __init__(self, name: Any, includes: List[str] = None, exclude_regex: str = '_.*',
                  injection=TestInjection, injection_data=None):
-        self.target = target
+        self.name = name
         self.includes = includes
         self.exclude_regex = re.compile(exclude_regex)
         self.injection = self.parse_injection(injection)
         self.injection_data = injection_data
         self.func_cls_map = {}
+        self.target_name = get_target_name(name)
 
     def get_trace_func(self, func, caller_file):
         file = caller_file.replace(_cwd, '').replace('/', '.').replace('\\', '.')[1:-2]
@@ -105,7 +116,7 @@ class Target:
         return func_names
 
     def get_target(self):
-        return _get_target_by_type(self.target)
+        return _get_target_by_type(self.name)
 
 
 import os
@@ -134,7 +145,7 @@ def _hook_wrapper(target: Target, cls_name=''):
             @wraps(func)
             async def inner(*args, **kwargs):
                 if cls_name and not signature(func).parameters.get('self'):  # fix classmethod and staticmethod
-                    args = args[1:]  # TODO: 复制行为是否会出错？
+                    args = args[1:]
                 injection_cls = target.injection
                 if injection_cls:
                     func_name = parse_trace_func(func, injection_cls.trace_func)
@@ -158,7 +169,7 @@ def _hook_wrapper(target: Target, cls_name=''):
             @wraps(func)
             def inner(*args, **kwargs):
                 if cls_name and not signature(func).parameters.get('self'):  # fix classmethod and staticmethod
-                    args = args[1:]  # TODO: 复制行为是否会出错？
+                    args = args[1:]
                 injection_cls = target.injection
                 if injection_cls:
                     func_name = parse_trace_func(func, injection_cls.trace_func)
@@ -264,6 +275,7 @@ def api_hooker(target: Any, includes: List[str] = None, exclude_regex: str = '_.
     :param includes: funcs of module/cls to be hooked
     :param exclude_regex: matched funcs will not be hooked
     :param injection: your hook class
+    :param injection_data: data to insert into hook class
     :return: hooker object
     """
     target_object = Target(target, includes, exclude_regex, injection, injection_data)
