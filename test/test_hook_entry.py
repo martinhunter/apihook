@@ -15,6 +15,17 @@ class TestHookEntry(unittest.TestCase):
             run()
         run()
 
+    def test_integrated_import(self):
+        from test.hook_project.part2 import Part2, part2_normalx
+        hookers = multi_hooker()
+        hookers.add_hook(Part2, includes=['cls2'])
+        hookers.add_hook(Part2, includes=['cls2', 'func2', 'sta2'])
+        hookers.add_hook('test.hook_project.part2', includes=['part2_normal'])
+        hookers.add_hook(part2_normalx)
+        with hookers:
+            run()
+        run()
+
 
 class TestHookEntryAsync(unittest.IsolatedAsyncioTestCase):
     async def test_integrated_async(self):

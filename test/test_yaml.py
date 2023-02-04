@@ -1,8 +1,8 @@
 import os
-
-from yaml_parser import yaml_hookers
 import unittest
+
 from test.hook_project import run
+from yaml_parser import yaml_hookers
 
 
 class TestYamlHookEntry(unittest.TestCase):
@@ -11,8 +11,6 @@ class TestYamlHookEntry(unittest.TestCase):
         with yaml_hookers(yaml_file):
             run()
         run()
-
-
 
 
 if __name__ == '__main__':
