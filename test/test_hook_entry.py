@@ -16,11 +16,12 @@ class TestHookEntry(unittest.TestCase):
         run()
 
     def test_integrated_import(self):
+        import sys
         from test.hook_project.part2 import Part2, part2_normalx
         hookers = multi_hooker()
         hookers.add_hook(Part2, includes=['cls2'])
         hookers.add_hook(Part2, includes=['cls2', 'func2', 'sta2'])
-        hookers.add_hook('test.hook_project.part2', includes=['part2_normal'])
+        hookers.add_hook(sys.modules['test.hook_project.part2'], includes=['part2_normal'])
         hookers.add_hook(part2_normalx)
         with hookers:
             run()

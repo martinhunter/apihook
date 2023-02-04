@@ -59,8 +59,6 @@ def _merge_target(hookers):
                 obj = OrderedDict()
                 parent['ns'].append(obj)
             recurse([ns, v], obj)
-        if len(parent['ns']) == 0:
-            parent['ns'] = parent['ns'][0]
 
     container = OrderedDict()
     targets = ["", [[hooker.target.target_name, hooker.target] for hooker in hookers]]

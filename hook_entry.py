@@ -54,7 +54,7 @@ def _get_target_by_type(target):
         module = sys.modules[target.__module__]
         attr = target
     elif ismodule(target):
-        module = None  # get namespace if unnecessary
+        module = None  # get module namespace is unnecessary
         attr = target
     else:
         raise Exception('target type {} is not acceptable'.format(type(target)))

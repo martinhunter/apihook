@@ -19,6 +19,7 @@ class TestYamlHookEntry(unittest.TestCase):
         dumped_file = 'dumped.yaml'
         hookers = yaml_hookers(self.yaml_file)
         yaml_dump_hookers(hookers, file=dumped_file)
+        os.remove(dumped_file)
 
 
 if __name__ == '__main__':
