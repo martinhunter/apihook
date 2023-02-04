@@ -5,7 +5,7 @@ from functools import wraps
 from inspect import signature, ismodule, isclass, isfunction, iscoroutinefunction
 from typing import List, Any
 
-from injections import TestInjection, InjectionDataBase
+from injections import TestInjection
 
 
 def _dot_lookup(thing, comp, import_path):
@@ -60,6 +60,7 @@ def _get_target_by_type(target):
         raise Exception('target type {} is not acceptable'.format(type(target)))
     return module, attr
 
+
 def get_target_name(name):
     if isinstance(name, str):
         target_name = name
@@ -70,6 +71,7 @@ def get_target_name(name):
         else:
             target_name = module.__name__ + '.' + target.__name__
     return target_name
+
 
 class HookContextMixin:
     def start_hook(self):
@@ -149,7 +151,7 @@ def _hook_wrapper(target: Target, cls_name=''):
                 injection_cls = target.injection
                 if injection_cls:
                     func_name = parse_trace_func(func, injection_cls.trace_func)
-                    if issubclass(injection_cls, InjectionDataBase):
+                    if target.injection_data is not None:
                         injection = injection_cls(func_name, target.injection_data)
                     else:
                         injection = injection_cls(func_name)
@@ -173,7 +175,7 @@ def _hook_wrapper(target: Target, cls_name=''):
                 injection_cls = target.injection
                 if injection_cls:
                     func_name = parse_trace_func(func, injection_cls.trace_func)
-                    if issubclass(injection_cls, InjectionDataBase):
+                    if target.injection_data is not None:
                         injection = injection_cls(func_name, target.injection_data)
                     else:
                         injection = injection_cls(func_name)
@@ -249,7 +251,7 @@ class ApiHookers(HookContextMixin):
 
     def add_hook(self, target: Any, includes: List[str] = None, exclude_regex: str = '_.*',
                  injection=TestInjection, injection_data=None):
-        self.hookers.append(api_hooker(target, includes, exclude_regex, injection))
+        self.hookers.append(api_hooker(target, includes, exclude_regex, injection, injection_data))
 
     def add(self, hooker: ApiHooker):
         self.hookers.append(copy.copy(hooker))

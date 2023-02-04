@@ -1,10 +1,10 @@
 import unittest
-from test.hook_project import run, async_run
 
 from hook_entry import multi_hooker
+from test.hook_project import run, async_run
 
 
-class TestHookEntry(unittest.TestCase):
+class TestHookEntryWorks(unittest.TestCase):
     def test_integrated(self):
         hookers = multi_hooker()
         hookers.add_hook('test.hook_project.part2.Part2', includes=['cls2'])
@@ -28,7 +28,7 @@ class TestHookEntry(unittest.TestCase):
         run()
 
 
-class TestHookEntryAsync(unittest.IsolatedAsyncioTestCase):
+class TestHookEntryAsyncWorks(unittest.IsolatedAsyncioTestCase):
     async def test_integrated_async(self):
         hookers = multi_hooker()
         hookers.add_hook('test.hook_project.part2_async.AsyncPart2', includes=['cls2'])
@@ -43,4 +43,3 @@ class TestHookEntryAsync(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == '__main__':
     unittest.main()
-

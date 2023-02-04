@@ -1,22 +1,22 @@
 hook_project:
   ns:
-  - target: test.hook_project
-    ns:
-    - target: part2
-      attrs:
-        includes:
-        - part2_normalx
+    - target: test.hook_project
       ns:
-      - target: Part2
-        attrs:
-          includes:
-            - cls2
-          injection:
-            temp_inj.TestInjection2
-      - target: Part2
-        attrs:
-          includes:
-          - cls2
-          - func2
-          - sta2
-      - target: part2_normal
+        - target: part2
+          attrs:
+            includes:
+              - part2_normalx
+          ns:
+            - target: Part2
+              attrs:
+                includes:
+                  - cls2
+                injection:
+                  temp_inj.TestInjection2
+            - target: Part2
+              attrs:
+                includes:
+                  - cls2
+                  - func2
+                  - sta2
+            - target: part2_normal

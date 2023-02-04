@@ -49,7 +49,7 @@ class LogInjectionBase(InjectionBase):
         logger.remove(logger_id)
 
     def hook_start(self, *args, **kwargs):
-        msg = '{} {} {}'.format(self.func_name, *args, **kwargs)
+        msg = '{} {} {}'.format(self.func_name, args, kwargs)
         logger.info(msg)
 
     def hook_end(self, result):
@@ -60,6 +60,7 @@ class LogInjectionBase(InjectionBase):
 class InjectionDataBase(InjectionBase):
     skip_func = True  # do not change
     change_result = True  # do not change
+    data_exception = True
 
     def __init__(self, func_name, injection_data):
         super().__init__(func_name)
@@ -77,7 +78,8 @@ class InjectionDataBase(InjectionBase):
             key = self.create_key(*args, **kwargs)
             self.matched = self.injection_data[func_name].get(key, False)
         else:
-            raise Exception('no matched data for func_name: {} args: {} {}'.format(func_name, args, kwargs))
+            if self.data_exception:
+                raise Exception('no matched data for func_name: {} args: {} {}'.format(func_name, args, kwargs))
         self.hook_start(*args, **kwargs)
 
     def end(self, result):
@@ -86,3 +88,7 @@ class InjectionDataBase(InjectionBase):
         if new_result is not None:
             return new_result
         return self.matched
+
+
+class InjectionDataNoException(InjectionDataBase):
+    data_exception = False

@@ -5,7 +5,7 @@ from test.hook_project import run
 from yaml_parser import yaml_hookers, yaml_dump_hookers
 
 
-class TestYamlHookEntry(unittest.TestCase):
+class TestYamlHookWorks(unittest.TestCase):
     def setUp(self) -> None:
         self.yaml_file = os.path.join(os.path.dirname(__file__), 'hook_project/example.yaml')
 
