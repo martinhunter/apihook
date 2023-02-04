@@ -1,4 +1,5 @@
 import copy
+import inspect
 import re
 from functools import wraps
 from inspect import signature, ismodule, isclass, isfunction, iscoroutinefunction
@@ -83,6 +84,12 @@ class Target:
         self.exclude_regex = re.compile(exclude_regex)
         self.injection = self.parse_injection(injection)
         self.injection_data = injection_data
+        self.func_cls_map = {}
+
+    def get_trace_func(self, func, caller_file):
+        file = caller_file.replace(_cwd, '').replace('/', '.').replace('\\', '.')[1:-2]
+        func_name = self.func_cls_map.get(func, '') + func.__name__
+        return file + func_name
 
     @staticmethod
     def parse_injection(injection):
@@ -101,19 +108,40 @@ class Target:
         return _get_target_by_type(self.target)
 
 
-def _hook_wrapper(target: Target, is_cls=True):
+import os
+
+_cwd = os.getcwd()
+
+
+def _hook_wrapper(target: Target, cls_name=''):
     def middle(func):
+        if cls_name:
+            target.func_cls_map[func] = cls_name + '.'
+
+        def parse_trace_func(func_call, trace_func=True):
+            if not trace_func:
+                return func_call.__name__
+            # trace which file called this func
+            frame = inspect.currentframe()
+            while frame:
+                caller_file = frame.f_code.co_filename
+                if caller_file.endswith('hook_entry.py'):
+                    frame = frame.f_back
+                else:
+                    return target.get_trace_func(func_call, caller_file)
+
         if iscoroutinefunction(func):
             @wraps(func)
             async def inner(*args, **kwargs):
-                if is_cls and not signature(func).parameters.get('self'):  # 修正classmethod和staticmethod
+                if cls_name and not signature(func).parameters.get('self'):  # 修正classmethod和staticmethod
                     args = args[1:]  # TODO: 复制行为是否会出错？
                 injection_cls = target.injection
                 if injection_cls:
+                    func_name = parse_trace_func(func, injection_cls.trace_func)
                     if issubclass(injection_cls, InjectionDataBase):
-                        injection = injection_cls(func, target.injection_data)
+                        injection = injection_cls(func_name, target.injection_data)
                     else:
-                        injection = injection_cls(func)
+                        injection = injection_cls(func_name)
                     injection.start(*args, **kwargs)
                     if injection.skip_func:
                         return injection.end(None)
@@ -129,14 +157,15 @@ def _hook_wrapper(target: Target, is_cls=True):
         else:
             @wraps(func)
             def inner(*args, **kwargs):
-                if is_cls and not signature(func).parameters.get('self'):  # 修正classmethod和staticmethod
+                if cls_name and not signature(func).parameters.get('self'):  # 修正classmethod和staticmethod
                     args = args[1:]  # TODO: 复制行为是否会出错？
                 injection_cls = target.injection
                 if injection_cls:
+                    func_name = parse_trace_func(func, injection_cls.trace_func)
                     if issubclass(injection_cls, InjectionDataBase):
-                        injection = injection_cls(func, target.injection_data)
+                        injection = injection_cls(func_name, target.injection_data)
                     else:
-                        injection = injection_cls(func)
+                        injection = injection_cls(func_name)
                     injection.start(*args, **kwargs)
                     if injection.skip_func:
                         return injection.end(None)
@@ -163,7 +192,7 @@ class ApiHooker(HookContextMixin):
     def hook_cls(self, cls):
         for func_name in self.target.get_func_names(cls):
             func = getattr(cls, func_name)
-            wrapped_func = _hook_wrapper(self.target, is_cls=True)(func)
+            wrapped_func = _hook_wrapper(self.target, cls_name=cls.__name__)(func)
             self.original_attrs.append([cls, func_name, cls.__dict__[func_name]])
             setattr(cls, func_name, wrapped_func)
 
@@ -177,7 +206,7 @@ class ApiHooker(HookContextMixin):
                 continue
             for other_func_name, other_func in module_pack.__dict__.items():
                 if other_func_name == func_name and other_func == func:
-                    wrapped_func = _hook_wrapper(self.target, is_cls=False)(func)
+                    wrapped_func = _hook_wrapper(self.target)(func)
                     self.original_attrs.append([module_pack, func_name, func])
                     setattr(module_pack, func_name, wrapped_func)
 
