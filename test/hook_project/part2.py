@@ -14,8 +14,8 @@ class Part2:
         print('this is unhooked class func')
 
 
-def part2_normal():
-    print('normal2 ---')
+def part2_normal(n):
+    print('normal2 %s---' % n)
 
 
 def part2_normalx():

@@ -58,8 +58,8 @@ class LogInjectionBase(InjectionBase):
 
 
 class InjectionDataBase(InjectionBase):
-    skip_func = True  # do not change
-    change_result = True  # do not change
+    skip_func = True  # do not modify
+    change_result = True  # do not modify
     data_exception = True
 
     def __init__(self, func_name, injection_data):
@@ -76,7 +76,7 @@ class InjectionDataBase(InjectionBase):
         func_name = self.func_name
         if func_name in self.injection_data:
             key = self.create_key(*args, **kwargs)
-            self.matched = self.injection_data[func_name].get(key, False)
+            self.matched = self.injection_data[func_name].get(key)
         else:
             if self.data_exception:
                 raise Exception('no matched data for func_name: {} args: {} {}'.format(func_name, args, kwargs))

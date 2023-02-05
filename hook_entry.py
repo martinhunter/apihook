@@ -1,10 +1,10 @@
-import copy
 import inspect
 import re
 from functools import wraps
 from inspect import signature, ismodule, isclass, isfunction, iscoroutinefunction
 from typing import List, Any
 
+from exceptions import HookEntryTypeErr
 from injections import TestInjection
 
 
@@ -57,7 +57,7 @@ def _get_target_by_type(target):
         module = None  # get module namespace is unnecessary
         attr = target
     else:
-        raise Exception('target type {} is not acceptable'.format(type(target)))
+        raise HookEntryTypeErr('target type {} is not acceptable'.format(type(target)))
     return module, attr
 
 
@@ -97,7 +97,10 @@ class Target:
         self.injection = self.parse_injection(injection)
         self.injection_data = injection_data
         self.func_cls_map = {}
-        self.target_name = get_target_name(name)
+
+    @property
+    def target_name(self):
+        return get_target_name(self.name)
 
     def get_trace_func(self, func, caller_file):
         file = caller_file.replace(_cwd, '').replace('/', '.').replace('\\', '.')[1:-2]
@@ -114,7 +117,12 @@ class Target:
         if self.includes:
             func_names = self.includes
         else:
-            func_names = [func_name for func_name in cls.__dict__ if not self.exclude_regex.match(func_name)]
+            if ismodule(cls):
+                print("WARNING: only functions in module will be hooked")
+                func_names = [func_name for func_name in cls.__dict__ if
+                              not self.exclude_regex.match(func_name) and isfunction(getattr(cls, func_name))]
+            else:
+                func_names = [func_name for func_name in cls.__dict__ if not self.exclude_regex.match(func_name)]
         return func_names
 
     def get_target(self):
@@ -212,7 +220,7 @@ class ApiHooker(HookContextMixin):
     def hook_func(self, module, func_name):
         func = getattr(module, func_name)
         if isclass(func):
-            raise Exception('{} is a class, not func in module {}'.format(func_name, module))
+            raise HookEntryTypeErr('{} is a class, not func in module {}'.format(func_name, module))
         import sys
         for module_name, module_pack in sys.modules.items():
             if module_name.startswith('_'):
@@ -236,7 +244,7 @@ class ApiHooker(HookContextMixin):
         elif isfunction(target):
             self.hook_func(module, target.__name__)
         else:
-            raise Exception('{} is not func, class, module'.format(target))
+            raise HookEntryTypeErr('{} is not func, class, module'.format(target))
 
     def end_hook(self):
         # last in first out
@@ -249,12 +257,15 @@ class ApiHookers(HookContextMixin):
     def __init__(self, hookers: List[ApiHooker] = None):
         self.hookers = hookers or []
 
+    def __iter__(self):
+        return iter(self.hookers)
+
     def add_hook(self, target: Any, includes: List[str] = None, exclude_regex: str = '_.*',
                  injection=TestInjection, injection_data=None):
         self.hookers.append(api_hooker(target, includes, exclude_regex, injection, injection_data))
 
     def add(self, hooker: ApiHooker):
-        self.hookers.append(copy.copy(hooker))
+        self.hookers.append(hooker)
 
     def rm_hook(self, hooker: ApiHooker):
         self.hookers.remove(hooker)

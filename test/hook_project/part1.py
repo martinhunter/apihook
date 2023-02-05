@@ -9,7 +9,7 @@ class Part1:
         part2.sta2()
         part2.unhooked()
 
-        part2_normal()
+        part2_normal(23)
         part2_normalx()
         unhooked()
 
@@ -21,6 +21,6 @@ class Part1:
         part2.sta2()
         part2.unhooked()
 
-        part2_normal()
+        part2_normal(45)
         part2_normalx()
         unhooked()

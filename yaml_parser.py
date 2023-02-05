@@ -4,6 +4,7 @@ from typing import Union
 import yaml
 import yamlloader
 
+from exceptions import YamlParserLoadErr
 from hook_entry import multi_hooker, Target, ApiHooker, ApiHookers, get_target_name
 
 
@@ -91,7 +92,7 @@ def _recursive_parse(data, prefix=''):
                 new_prefix = target
         if attrs or not ns:
             if not target:
-                raise Exception('target not exist in ns: {} for attrs: {}'.format(new_prefix, attrs))
+                raise YamlParserLoadErr('target not exist in ns: {} for attrs: {}'.format(new_prefix, attrs))
             yield {'target': new_prefix, 'attrs': attrs}
         if ns:
             yield from _recursive_parse(ns, new_prefix)
