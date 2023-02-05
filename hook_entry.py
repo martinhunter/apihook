@@ -139,26 +139,27 @@ def _hook_wrapper(target: Target, cls_name=''):
         if cls_name:
             target.func_cls_map[func] = cls_name + '.'
 
-        def parse_trace_func(func_call, trace_func=True):
-            if not trace_func:
-                return func_call.__name__
+        def parse_trace_func(func_call):
             # trace which file called this func
             frame = inspect.currentframe()
+            counter = 0
             while frame:
                 caller_file = frame.f_code.co_filename
                 if caller_file.endswith('hook_entry.py'):
+                    counter += 1
                     frame = frame.f_back
                 else:
-                    return target.get_trace_func(func_call, caller_file)
+                    return target.get_trace_func(func_call, caller_file), counter
 
         if iscoroutinefunction(func):
             @wraps(func)
             async def inner(*args, **kwargs):
-                if cls_name and not signature(func).parameters.get('self'):  # fix classmethod and staticmethod
+                func_name, level = parse_trace_func(func)
+                if cls_name and not signature(func).parameters.get(
+                        'self') and level == 2:  # fix classmethod and staticmethod
                     args = args[1:]
                 injection_cls = target.injection
                 if injection_cls:
-                    func_name = parse_trace_func(func, injection_cls.trace_func)
                     if target.injection_data is not None:
                         injection = injection_cls(func_name, target.injection_data)
                     else:
@@ -178,11 +179,12 @@ def _hook_wrapper(target: Target, cls_name=''):
         else:
             @wraps(func)
             def inner(*args, **kwargs):
-                if cls_name and not signature(func).parameters.get('self'):  # fix classmethod and staticmethod
+                func_name, level = parse_trace_func(func)
+                if cls_name and not signature(func).parameters.get(
+                        'self') and level == 2:  # fix classmethod and staticmethod
                     args = args[1:]
                 injection_cls = target.injection
                 if injection_cls:
-                    func_name = parse_trace_func(func, injection_cls.trace_func)
                     if target.injection_data is not None:
                         injection = injection_cls(func_name, target.injection_data)
                     else:
@@ -199,7 +201,6 @@ def _hook_wrapper(target: Target, cls_name=''):
                             return result
                 else:
                     return func(*args, **kwargs)
-
         return inner
 
     return middle

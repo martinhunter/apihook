@@ -1,6 +1,6 @@
 class Part2:
     @classmethod
-    def cls2(cls):
+    def cls2(cls, x=10, y=30, c="213", **kwargs):
         print('cls2 ---')
 
     def func2(self):
