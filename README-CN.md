@@ -2,7 +2,7 @@
 期望获取多个rpc服务函数的入参及返回值，来作为1. 测试的初始数据或2. 作为mock rpc服务的入参及返回值。
 
 ### 设计方案
-使用装饰器获得入参及返回值，参照mock重新绑定函数
+使用装饰器获得入参及返回值，参照unittest.mock重新绑定函数
 
 ### 使用方式
 参考test文件夹
@@ -48,9 +48,13 @@ with hookers:  # 离开作用域后恢复
 3. 可将结果保存到日志，日志后续可对不同时间阶段的日志map/reduce
 
 ### 计划
-1. **DONE** p0 支持协程
+1. **DONE** 支持协程
 2. p1 测试多线程是否安全
-3. **DONE** p0 支持需hook的函数配置为yaml，通过运行不同的配置记录不同信息，配置为空则等同于未hook任何函数
-4. **DONE** p0 hooker的target参数~~支持传入模块/类（现只能是字符串）~~现支持传入字符串/模块/类/函数
+3. **DONE** 支持需hook的函数配置为yaml，通过运行不同的配置记录不同信息，配置为空则等同于未hook任何函数
+4. **DONE** hooker的target参数~~支持传入模块/类（现只能是字符串）~~现支持传入字符串/模块/类/函数
     ~~1. 代码迭代时由于hook的target是字符串，无法使用pycharm的find usage 和 refactor~~
-5. 日志解析，提取函数的入参及返回值。hook函数后，函数能查找匹配的入参并返回相应的出参
+5. **DONE** 日志解析，提取函数的入参及返回值。hook函数后，函数能查找匹配的入参并返回相应的出参。
+    1. 使用LogInjectionBase或其继承类，运行一次程序
+    2. 使用log_parser解析记录并保存到json文件
+    3. 使用InjectionDataBase或其继承类替换LogInjectionBase，载入json文件，设为injection_data的值（所有InjectionDataBase共享这些数据），此时再运行程序就使用这些数据，而不再调用耗时/有副作用的原函数。
+    

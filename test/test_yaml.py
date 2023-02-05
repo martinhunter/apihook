@@ -35,6 +35,5 @@ class TestYamlHookException(unittest.TestCase):
             hookers = yaml_hookers(self.err_yaml_file)
 
 
-
 if __name__ == '__main__':
     unittest.main()
