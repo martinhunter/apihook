@@ -1,4 +1,6 @@
+import json
 import re
+
 # pattern should return (func, md5_params, result)
 _pattern = re.compile(r'.*:end:\d+ - ([^\s]+) ([^\s]+) (.*)')
 
@@ -35,3 +37,13 @@ def reduce_max_result(reduced: dict):
 
 def get_log_data(file, pattern=_pattern):
     return reduce_max_result(reduce_log(parse_log(file, pattern)))
+
+
+def dump_data(file, data):
+    with open(file, 'w', encoding='utf-8') as f:
+        f.write(json.dumps(data))
+
+
+def load_data(file):
+    with open(file, 'r', encoding='utf-8') as f:
+        return json.loads(f.read())

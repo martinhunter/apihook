@@ -3,7 +3,7 @@ import unittest
 
 from hook_entry import multi_hooker
 from injections import LogInjectionBase
-from log_parser import get_log_data
+from log_parser import get_log_data, load_data, dump_data
 from test.hook_project import run
 
 
@@ -23,6 +23,11 @@ class TestLogParserWorks(unittest.TestCase):
                                                       '11e7903cf562f028d788fc601ffc9a04': None}}
         actual = get_log_data(self.file)
         self.assertEqual(expected, actual)
+        file = 'temp.json'
+        dump_data(file, data=actual)
+        actual = load_data(file)
+        self.assertEqual(expected, actual)
+
 
 
 if __name__ == '__main__':
