@@ -1,8 +1,9 @@
+import hashlib
+
 from loguru import logger
 
 
 class InjectionBase:
-    trace_func = True  # trace which module called this func_name
     skip_func = False  # skip calling func_name
     change_result = False  # return result from hook_end
 
@@ -32,33 +33,28 @@ class TestInjection(InjectionBase):
         print('└───────end───────┘')
 
 
+def md5_params(*args, **kwargs):
+    m = hashlib.md5()
+    m.update(str(args).encode('utf-8'))
+    m.update(str(sorted(kwargs.items())).encode('utf-8'))
+    return m.hexdigest()
+
+
 class LogInjectionBase(InjectionBase):
     file = 'log.log'
 
-    def __init__(self, func_name):
-        super().__init__(func_name)
-
     def start(self, *args, **kwargs):
-        logger_id = logger.add(self.file)
+        self.arg = md5_params(*args, **kwargs)
         self.hook_start(*args, **kwargs)
-        logger.remove(logger_id)
 
     def end(self, result):
+        msg = '{} {} {}'.format(self.func_name, self.arg, result)  # record original result
         logger_id = logger.add(self.file)
-        self.hook_end(result)
+        logger.info(msg)
         logger.remove(logger_id)
-
-    def hook_start(self, *args, **kwargs):
-        msg = '{} {} {}'.format(self.func_name, args, kwargs)
-        logger.info(msg)
-
-    def hook_end(self, result):
-        msg = '{} {}'.format(self.func_name, result)
-        logger.info(msg)
-
+        self.hook_end(result)
 
 class InjectionDataBase(InjectionBase):
-    skip_func = True  # do not modify
     change_result = True  # do not modify
     data_exception = True
 
@@ -75,7 +71,7 @@ class InjectionDataBase(InjectionBase):
     def start(self, *args, **kwargs):
         func_name = self.func_name
         if func_name in self.injection_data:
-            key = self.create_key(*args, **kwargs)
+            key = md5_params(*args, **kwargs)
             self.matched = self.injection_data[func_name].get(key)
         else:
             if self.data_exception:

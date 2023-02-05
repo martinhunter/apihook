@@ -15,6 +15,7 @@ class TestInjectionWorks(unittest.TestCase):
         hookers = multi_hooker()
         hookers.add_hook('test.hook_project.part2.Part2', includes=['cls2'], injection=InjectionSkip)
         hookers.add_hook('test.hook_project.part2.Part2', includes=['cls2'], injection=LogInjectionBase)
+        hookers.add_hook('test.hook_project.part2.Part2', includes=['cls2'], injection=LogInjectionBase)
         hookers.add_hook('test.hook_project.part2', includes=['part2_normal'], injection=InjectionDataNoException,
                          injection_data={'test.hook_project.part1.part2_normal': {
                              '(23,){}': 'value1', '(45,){}': 'value2'
