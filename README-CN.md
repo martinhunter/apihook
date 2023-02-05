@@ -5,6 +5,7 @@
 使用装饰器获得入参及返回值，参照mock重新绑定函数
 
 ### 使用方式
+参考test文件夹
 ```python
 from your_project import run
 from api_hook import multi_hooker, LogInjectionBase, api_hooker

@@ -54,6 +54,7 @@ class LogInjectionBase(InjectionBase):
         logger.remove(logger_id)
         self.hook_end(result)
 
+
 class InjectionDataBase(InjectionBase):
     change_result = True  # do not modify
     data_exception = True
