@@ -47,7 +47,7 @@ elif [[ $1 == "report" ]];then
   python -m coverage report -m
 elif [[ $1 == "html" ]];then
   test_all
-  python -m coverage html -d covhtml
+  python -m coverage html -d htmlcov
 else
   echo -e $help_msg
 fi
