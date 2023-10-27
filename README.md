@@ -11,9 +11,9 @@ e.g.
 from your_project import your_main_entry
 import sys
 sys.path.insert(0, r'D:\coding\pyprojects\mylibs')  # apihook在mylibs文件夹下
-from apihook import multi_hooker, LogInjectionBase, LogInjectionDataBase, api_hooker
-from apihook.yaml_parser import yaml_hookers, yaml_dump_hookers
-from apihook.log_parser import get_log_data
+from api_hook import multi_hooker, LogInjectionBase, LogInjectionDataBase, api_hooker, BaseObjectFilter, condition_hookers
+from api_hook.yaml_parser import yaml_hookers, yaml_dump_hookers
+from api_hook.log_parser import get_log_data
 
 
 HOOK_MODE = None
@@ -40,7 +40,16 @@ elif HOOK_MODE == 'specify hook from yaml':
     with y_hookers:
         your_main_entry()
     yaml_dump_hookers(y_hookers, file='example.yaml')
-
+elif HOOK_MODE == 'find class or function that match filter':
+    import sys
+    sys.path.insert(0, r'D:\coding\pyprojects\quick_projects')
+    from temp.one.temp1 import A
+    class F(BaseObjectFilter):
+        def filter(self, object_name, value):
+            if isinstance(value, type) and issubclass(value, A):
+                return self.create(object_name)
+    
+    hookers = condition_hookers('', 'temp\\one', [F])
 
 ```
 

@@ -32,7 +32,13 @@ def yaml_hookers(filename):
     return hookers
 
 
-def condition_hookers(relative_path, module_path, filters):
+def condition_hookers(relative_path, module_path, filters: list):
+    """
+    :param relative_path: source root directory
+    :param module_path: folder of .py files
+    :param filters: hook all matched class/functions
+    :return:
+    """
     hookers = multi_hooker()
     targets = search_object(relative_path, module_path, filters)
     for target in targets:
