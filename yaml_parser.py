@@ -5,7 +5,7 @@ import yaml
 import yamlloader
 
 from exceptions import YamlParserLoadErr
-from hook_entry import multi_hooker, Target, ApiHooker, ApiHookers, get_target_name
+from hook_entry import Target, ApiHooker, ApiHookers, get_target_name
 
 
 def _load_yaml(filename):
@@ -103,32 +103,3 @@ def parse_yaml(filename):
     for k, v in loaded.items():
         if k == 'hook_project':
             return _recursive_parse(v)
-
-
-def yaml_hookers(filename):
-    """
-    yaml ns list order matters if you want to apply multiple injection on the same function
-    e.g.
-    ns:
-      - target: Part2
-        attrs:
-          includes:
-            - cls2
-      - target: Part2
-        attrs:
-          includes:
-          - cls2
-          - func2
-          - sta2
-    :param filename:
-    :return:
-    """
-    hookers = multi_hooker()
-    for item in parse_yaml(filename):
-        target: str = item['target']
-        kwargs: dict = item['attrs']
-        if kwargs:
-            hookers.add_hook(target=target, **kwargs)
-        else:
-            hookers.add_hook(target=target)
-    return hookers

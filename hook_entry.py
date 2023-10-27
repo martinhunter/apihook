@@ -215,7 +215,7 @@ class ApiHooker(HookContextMixin):
         for func_name in self.target.get_func_names(cls):
             func = getattr(cls, func_name)
             wrapped_func = _hook_wrapper(self.target, cls_name=cls.__name__)(func)
-            self.original_attrs.append([cls, func_name, cls.__dict__[func_name]])
+            self.original_attrs.append([cls, func_name, cls.__dict__[func_name] if func_name in cls.__dict__ else func])
             setattr(cls, func_name, wrapped_func)
 
     def hook_func(self, module, func_name):
