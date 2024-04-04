@@ -10,13 +10,13 @@ hook_project:
             - target: Part2
               attrs:
                 includes:
-                  - cls2
+                  - cls_arg
                 injection:
-                  temp_inj.TestInjection2
+                  injections.LogInjectionBase
             - target: Part2
               attrs:
                 includes:
-                  - cls2
-                  - func2
-                  - sta2
+                  - cls_arg
+                  - method_arg
+                  - static_arg
             - target: part2_normal

@@ -12,7 +12,8 @@ from your_project import your_main_entry
 import sys
 sys.path.insert(0, r'D:\coding\pyprojects\mylibs')  # apihook在mylibs文件夹下
 from api_hook import multi_hooker, LogInjectionBase, LogInjectionDataBase, api_hooker, BaseObjectFilter, condition_hookers
-from api_hook.yaml_parser import yaml_hookers, yaml_dump_hookers
+from api_hook.yaml_parser import yaml_dump_hookers
+from api_hook.hookers import yaml_hookers
 from api_hook.log_parser import get_log_data
 
 

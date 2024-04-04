@@ -3,7 +3,8 @@ import unittest
 
 from exceptions import YamlParserLoadErr
 from test.hook_project import run
-from yaml_parser import yaml_hookers, yaml_dump_hookers
+from yaml_parser import yaml_dump_hookers
+from hookers import yaml_hookers
 
 
 class TestYamlHookWorks(unittest.TestCase):
