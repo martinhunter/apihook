@@ -7,9 +7,8 @@ class InjectionBase:
     skip_func = False  # skip calling func_name
     change_result = False  # return result from hook_end
 
-    def __init__(self, func_name, kls=None):
+    def __init__(self, func_name):
         self.func_name = func_name
-        self.kls = kls
 
     def start(self, *args, **kwargs):
         return self.hook_start(*args, **kwargs)
@@ -49,7 +48,7 @@ class InjChangeSkip(InjChange):
     skip_func = True
 
     def hook_start(self, *args, **kwargs):
-        print(self.kls, args, kwargs)
+        print(args, kwargs)
 
 
 def md5_params(*args, **kwargs):
@@ -78,8 +77,8 @@ class InjectionDataBase(InjChange):
     change_result = True  # do not modify
     data_exception = True
 
-    def __init__(self, func_name, kls=None, inj_data=None):
-        super().__init__(func_name, kls)
+    def __init__(self, func_name, inj_data=None):
+        super().__init__(func_name)
         self.injection_data = inj_data
         self.matched = None
 

@@ -180,20 +180,18 @@ def _hook_wrapper(target: Target, cls_name=''):
                 injection_cls = target.injection
                 if injection_cls:
                     func_name, level = parse_trace_func(func)
-                    if reduce_arg(func_type):
-                        kls = args[0]
-                        args = args[1:]
-                    else:
-                        kls = None
                     if target.injection_data is not None:
-                        injection = injection_cls(func_name, kls, target.injection_data)
+                        injection = injection_cls(func_name, target.injection_data)
                     else:
-                        injection = injection_cls(func_name, kls)
+                        injection = injection_cls(func_name)
                     result = injection.start(*args, **kwargs)
                     if injection.skip_func:
                         return injection.end(result)
                     else:
-                        result = await func(*args, **kwargs)
+                        if counter == 1 and reduce_arg(func_type):
+                            result = await func(*args[1:], **kwargs)
+                        else:
+                            result = await func(*args, **kwargs)
                         new_result = injection.end(result)
                         if injection.change_result:
                             return new_result
@@ -207,28 +205,18 @@ def _hook_wrapper(target: Target, cls_name=''):
                 injection_cls = target.injection
                 if injection_cls:
                     func_name, level = parse_trace_func(func)
-                    # if (not inspect.signature(func).parameters.get('self') and level == 2) or reduce_arg(func_type):
-                    if counter == 1:
-                        kls = args[0]
-                        xargs = args
-                    elif reduce_arg(func_type):
-                        kls = args[0]
-                        xargs = args[1:]
-                    else:
-                        xargs = args
-                        kls = None
                     if target.injection_data is not None:
-                        injection = injection_cls(func_name, kls, target.injection_data)
+                        injection = injection_cls(func_name, target.injection_data)
                     else:
-                        injection = injection_cls(func_name, kls)
-                    result = injection.start(*xargs, **kwargs)
+                        injection = injection_cls(func_name)
+                    result = injection.start(*args, **kwargs)
                     if injection.skip_func:
                         return injection.end(result)
                     else:
-                        if counter != 1:
-                            result = func(*args, **kwargs)
+                        if counter == 1 and reduce_arg(func_type):
+                            result = func(*args[1:], **kwargs)
                         else:
-                            result = func(*xargs, **kwargs)
+                            result = func(*args, **kwargs)
                         new_result = injection.end(result)
                         if injection.change_result:
                             return new_result
@@ -344,6 +332,7 @@ class ApiHookers(HookContextMixin):
         # last in first out
         for hooker in reversed(self.hookers):
             hooker.end_hook()
+        func_inj_counter.clear()  # make hooker context not effect each other
 
 
 def api_hooker(target: Any, includes: List[str] = None, exclude_regex: str = '_.*',
