@@ -7,11 +7,12 @@ class InjectionBase:
     skip_func = False  # skip calling func_name
     change_result = False  # return result from hook_end
 
-    def __init__(self, func_name):
+    def __init__(self, func_name, kls=None):
         self.func_name = func_name
+        self.kls = kls
 
     def start(self, *args, **kwargs):
-        self.hook_start(*args, **kwargs)
+        return self.hook_start(*args, **kwargs)
 
     def end(self, result):
         new_result = self.hook_end(result)
@@ -31,6 +32,24 @@ class TestInjection(InjectionBase):
 
     def hook_end(self, result):
         print('└───────end───────┘')
+
+
+class InjSkip(InjectionBase):
+    skip_func = True
+
+
+class InjChange(InjectionBase):
+    change_result = True
+
+    def hook_end(self, result):
+        return result
+
+
+class InjChangeSkip(InjChange):
+    skip_func = True
+
+    def hook_start(self, *args, **kwargs):
+        print(self.kls, args, kwargs)
 
 
 def md5_params(*args, **kwargs):
@@ -55,14 +74,13 @@ class LogInjectionBase(InjectionBase):
         self.hook_end(result)
 
 
-class InjectionDataBase(InjectionBase):
+class InjectionDataBase(InjChange):
     change_result = True  # do not modify
     data_exception = True
 
-    def __init__(self, func_name, injection_data):
-        super().__init__(func_name)
-        assert injection_data is not None
-        self.injection_data = injection_data
+    def __init__(self, func_name, kls=None, inj_data=None):
+        super().__init__(func_name, kls)
+        self.injection_data = inj_data
         self.matched = None
 
     @staticmethod
@@ -77,7 +95,7 @@ class InjectionDataBase(InjectionBase):
         else:
             if self.data_exception:
                 raise Exception('no matched data for func_name: {} args: {} {}'.format(func_name, args, kwargs))
-        self.hook_start(*args, **kwargs)
+        return self.hook_start(*args, **kwargs)
 
     def end(self, result):
         # return new_result if hook_end returns value else return self.matched

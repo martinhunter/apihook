@@ -4,9 +4,15 @@ from .part2 import Part2, part2_normal, part2_normalx, unhooked
 class Part1:
     def one(self):
         part2 = Part2()
-        part2.cls2(21, 44, c=22, one='x32', two='cx3', three='x45')
-        part2.func2()
-        part2.sta2()
+        part2.cls_no_param()
+        part2.cls_arg('cls_arg')
+        part2.cls_kw(cls_x=99, cls_y=99, cls_z="99", my=21)
+        part2.method_no_param()
+        part2.method_arg('method_arg')
+        part2.method_kw('method_kw')
+        part2.static_no_param()
+        part2.static_arg('static_arg1', 'static_arg2')
+        part2.static_kw(99, 99)
         part2.unhooked()
 
         part2_normal(23)
@@ -16,9 +22,15 @@ class Part1:
     @classmethod
     def two(cls):
         part2 = Part2()
-        part2.cls2()
-        part2.func2()
-        part2.sta2()
+        part2.cls_no_param()
+        part2.cls_arg('cls_arg')
+        part2.cls_kw(cls_x=99, cls_y=99, cls_z="99", my=21)
+        part2.method_no_param()
+        part2.method_arg('method_arg')
+        part2.method_kw('method_kw')
+        part2.static_no_param()
+        part2.static_arg('static_arg1', 'static_arg2')
+        part2.static_kw(99, 99)
         part2.unhooked()
 
         part2_normal(45)

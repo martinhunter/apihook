@@ -1,11 +1,15 @@
 import inspect
+import os
 import re
+import types
 from functools import wraps
 from inspect import signature, ismodule, isclass, isfunction, iscoroutinefunction
 from typing import List, Any
 
 from exceptions import HookEntryTypeErr
 from injections import TestInjection
+
+_cwd = os.getcwd()
 
 
 def _dot_lookup(thing, comp, import_path):
@@ -128,14 +132,25 @@ class Target:
     def get_target(self):
         return _get_target_by_type(self.name)
 
+STATIC_METHOD = 'staticmethod'
+CLASS_METHOD = 'classmethod'
+INSTANCE_METHOD = 'instancemethod'
+def reduce_arg(func_type):
+    return func_type in [STATIC_METHOD, CLASS_METHOD]
 
-import os
-
-_cwd = os.getcwd()
+def cls_func_type(func):
+    if isinstance(func, staticmethod):
+        return STATIC_METHOD
+    elif isinstance(func, classmethod):
+        return CLASS_METHOD
+    elif isinstance(func, types.FunctionType):
+        return INSTANCE_METHOD
+    else:
+        return None
 
 
 def _hook_wrapper(target: Target, cls_name=''):
-    def middle(func):
+    def middle(func, func_type=None):
         if cls_name:
             target.func_cls_map[func] = cls_name + '.'
 
@@ -154,19 +169,21 @@ def _hook_wrapper(target: Target, cls_name=''):
         if iscoroutinefunction(func):
             @wraps(func)
             async def inner(*args, **kwargs):
-                func_name, level = parse_trace_func(func)
-                if cls_name and not signature(func).parameters.get(
-                        'self') and level == 2:  # fix classmethod and staticmethod
-                    args = args[1:]
                 injection_cls = target.injection
                 if injection_cls:
-                    if target.injection_data is not None:
-                        injection = injection_cls(func_name, target.injection_data)
+                    func_name, level = parse_trace_func(func)
+                    if reduce_arg(func_type):
+                        kls = args[0]
+                        args = args[1:]
                     else:
-                        injection = injection_cls(func_name)
-                    injection.start(*args, **kwargs)
+                        kls = None
+                    if target.injection_data is not None:
+                        injection = injection_cls(func_name, kls, target.injection_data)
+                    else:
+                        injection = injection_cls(func_name, kls)
+                    result = injection.start(*args, **kwargs)
                     if injection.skip_func:
-                        return injection.end(None)
+                        return injection.end(result)
                     else:
                         result = await func(*args, **kwargs)
                         new_result = injection.end(result)
@@ -179,19 +196,21 @@ def _hook_wrapper(target: Target, cls_name=''):
         else:
             @wraps(func)
             def inner(*args, **kwargs):
-                func_name, level = parse_trace_func(func)
-                if cls_name and not signature(func).parameters.get(
-                        'self') and level == 2:  # fix classmethod and staticmethod
-                    args = args[1:]
                 injection_cls = target.injection
                 if injection_cls:
-                    if target.injection_data is not None:
-                        injection = injection_cls(func_name, target.injection_data)
+                    func_name, level = parse_trace_func(func)
+                    if reduce_arg(func_type):
+                        kls = args[0]
+                        args = args[1:]
                     else:
-                        injection = injection_cls(func_name)
-                    injection.start(*args, **kwargs)
+                        kls = None
+                    if target.injection_data is not None:
+                        injection = injection_cls(func_name, kls, target.injection_data)
+                    else:
+                        injection = injection_cls(func_name, kls)
+                    result = injection.start(*args, **kwargs)
                     if injection.skip_func:
-                        return injection.end(None)
+                        return injection.end(result)
                     else:
                         result = func(*args, **kwargs)
                         new_result = injection.end(result)
@@ -214,8 +233,9 @@ class ApiHooker(HookContextMixin):
     def hook_cls(self, cls):
         for func_name in self.target.get_func_names(cls):
             func = getattr(cls, func_name)
-            wrapped_func = _hook_wrapper(self.target, cls_name=cls.__name__)(func)
-            self.original_attrs.append([cls, func_name, cls.__dict__[func_name] if func_name in cls.__dict__ else func])
+            the_func = cls.__dict__[func_name] if func_name in cls.__dict__ else func
+            wrapped_func = _hook_wrapper(self.target, cls_name=cls.__name__)(func, cls_func_type(the_func))
+            self.original_attrs.append([cls, func_name, the_func])
             setattr(cls, func_name, wrapped_func)
 
     def hook_func(self, module, func_name):
