@@ -70,9 +70,6 @@ class TestHookEntryException(unittest.TestCase):
 
 
 class TestImporter(unittest.TestCase):
-    def test_dot_lookup(self):
-        _dot_lookup('test', 'hook_project', 'test')
-
     def test_get_target(self):
         with self.assertRaises(TypeError):
             _get_target(3)

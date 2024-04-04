@@ -2,11 +2,11 @@ import inspect
 import os
 import re
 import sys
-import types
 from functools import wraps
 from inspect import ismodule, isclass, isfunction, iscoroutinefunction
 from typing import List, Any
 
+from common import reduce_arg, cls_func_type
 from exceptions import HookEntryTypeErr
 from injections import TestInjection
 
@@ -137,26 +137,6 @@ class Target:
         return _get_target_by_type(self.name)
 
 
-STATIC_METHOD = 'staticmethod'
-CLASS_METHOD = 'classmethod'
-INSTANCE_METHOD = 'instancemethod'
-
-
-def reduce_arg(func_type):
-    return func_type in [STATIC_METHOD, CLASS_METHOD]
-
-
-def cls_func_type(func):
-    if isinstance(func, staticmethod):
-        return STATIC_METHOD
-    elif isinstance(func, classmethod):
-        return CLASS_METHOD
-    elif isinstance(func, types.FunctionType):
-        return INSTANCE_METHOD
-    else:
-        return None
-
-
 def _hook_wrapper(target: Target, cls_name=''):
     def middle(func, func_type=None, counter=1):
         if cls_name:
@@ -181,9 +161,9 @@ def _hook_wrapper(target: Target, cls_name=''):
                 if injection_cls:
                     func_name, level = parse_trace_func(func)
                     if target.injection_data is not None:
-                        injection = injection_cls(func_name, target.injection_data)
+                        injection = injection_cls(func_name, func_type, target.injection_data)
                     else:
-                        injection = injection_cls(func_name)
+                        injection = injection_cls(func_name, func_type)
                     result = injection.start(*args, **kwargs)
                     if injection.skip_func:
                         return injection.end(result)
@@ -206,9 +186,9 @@ def _hook_wrapper(target: Target, cls_name=''):
                 if injection_cls:
                     func_name, level = parse_trace_func(func)
                     if target.injection_data is not None:
-                        injection = injection_cls(func_name, target.injection_data)
+                        injection = injection_cls(func_name, func_type, target.injection_data)
                     else:
-                        injection = injection_cls(func_name)
+                        injection = injection_cls(func_name, func_type)
                     result = injection.start(*args, **kwargs)
                     if injection.skip_func:
                         return injection.end(result)

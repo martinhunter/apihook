@@ -3,7 +3,7 @@ import unittest
 
 from hook_entry import multi_hooker
 from injections import LogInjectionBase
-from log_parser import get_log_data, load_data, dump_data
+from log_parser import get_log_data, dump_data, load_data
 from test.hook_project import run
 
 
@@ -29,14 +29,15 @@ class TestLogParserWorks(unittest.TestCase):
             run()
 
     def test_log_data(self):
-        expected = {'hook_project.part1.Part2.cls_arg': {'3c41685a8f9f2136dbe0e2a6e4b0268e': None,
-                                                         '78a1edbcd10952f67817a92c45a8102c': None}}
-        # actual = get_log_data(self.file)
-        # self.assertEqual(expected, actual)
-        # file = 'temp.json'
-        # dump_data(file, data=actual)
-        # actual = load_data(file)
-        # self.assertEqual(expected, actual)
+        expected = {'hook_project.part1.Part2.cls_arg': {'3c41685a8f9f2136dbe0e2a6e4b0268e': None},
+                    'hook_project.part1.Part2.method_arg': {'833ab21af8f8a08f5c3708fdc89c14ee': None},
+                    'hook_project.part1.Part2.static_arg': {'e35a1adb33c39b80153cc7b70889cf4c': None}}
+        actual = get_log_data(self.file)
+        self.assertEqual(expected, actual)
+        file = 'temp.json'
+        dump_data(file, data=actual)
+        actual = load_data(file)
+        self.assertEqual(expected, actual)
 
 
 if __name__ == '__main__':
