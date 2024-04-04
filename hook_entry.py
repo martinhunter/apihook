@@ -1,9 +1,10 @@
 import inspect
 import os
 import re
+import sys
 import types
 from functools import wraps
-from inspect import signature, ismodule, isclass, isfunction, iscoroutinefunction
+from inspect import ismodule, isclass, isfunction, iscoroutinefunction
 from typing import List, Any
 
 from exceptions import HookEntryTypeErr
@@ -77,6 +78,9 @@ def get_target_name(name):
     return target_name
 
 
+func_inj_counter = {}
+
+
 class HookContextMixin:
     def start_hook(self):
         raise NotImplemented  # pragma no cover
@@ -132,11 +136,15 @@ class Target:
     def get_target(self):
         return _get_target_by_type(self.name)
 
+
 STATIC_METHOD = 'staticmethod'
 CLASS_METHOD = 'classmethod'
 INSTANCE_METHOD = 'instancemethod'
+
+
 def reduce_arg(func_type):
     return func_type in [STATIC_METHOD, CLASS_METHOD]
+
 
 def cls_func_type(func):
     if isinstance(func, staticmethod):
@@ -150,7 +158,7 @@ def cls_func_type(func):
 
 
 def _hook_wrapper(target: Target, cls_name=''):
-    def middle(func, func_type=None):
+    def middle(func, func_type=None, counter=1):
         if cls_name:
             target.func_cls_map[func] = cls_name + '.'
 
@@ -199,20 +207,28 @@ def _hook_wrapper(target: Target, cls_name=''):
                 injection_cls = target.injection
                 if injection_cls:
                     func_name, level = parse_trace_func(func)
-                    if reduce_arg(func_type):
+                    # if (not inspect.signature(func).parameters.get('self') and level == 2) or reduce_arg(func_type):
+                    if counter == 1:
                         kls = args[0]
-                        args = args[1:]
+                        xargs = args
+                    elif reduce_arg(func_type):
+                        kls = args[0]
+                        xargs = args[1:]
                     else:
+                        xargs = args
                         kls = None
                     if target.injection_data is not None:
                         injection = injection_cls(func_name, kls, target.injection_data)
                     else:
                         injection = injection_cls(func_name, kls)
-                    result = injection.start(*args, **kwargs)
+                    result = injection.start(*xargs, **kwargs)
                     if injection.skip_func:
                         return injection.end(result)
                     else:
-                        result = func(*args, **kwargs)
+                        if counter != 1:
+                            result = func(*args, **kwargs)
+                        else:
+                            result = func(*xargs, **kwargs)
                         new_result = injection.end(result)
                         if injection.change_result:
                             return new_result
@@ -225,32 +241,61 @@ def _hook_wrapper(target: Target, cls_name=''):
     return middle
 
 
+def global_search_module_attr(attr_name, attr):
+    # you have to replace attr with new_attr in all modules, so new_attr will make effect in all files
+    for module_name, module_pack in sys.modules.items():
+        if module_name.startswith('_'):
+            continue
+        for other_attr_name, other_attr in module_pack.__dict__.items():
+            if other_attr_name == attr_name and other_attr == attr:
+                yield module_pack
+
+
+def get_inj_func_count(target: Target, the_func, func_name):
+    full_name = '{}.{}'.format(target.target_name, func_name)
+    if full_name in func_inj_counter:
+        item = func_inj_counter[full_name]
+        item['counter'] += 1
+    else:
+        counter = 1
+        func_type = cls_func_type(the_func)
+        func_inj_counter[full_name] = {
+            'counter': counter,
+            'func_type': func_type
+        }
+    return func_inj_counter[full_name]
+
+
 class ApiHooker(HookContextMixin):
     def __init__(self, target: Target):
         self.target = target
         self.original_attrs = []
 
     def hook_cls(self, cls):
-        for func_name in self.target.get_func_names(cls):
-            func = getattr(cls, func_name)
-            the_func = cls.__dict__[func_name] if func_name in cls.__dict__ else func
-            wrapped_func = _hook_wrapper(self.target, cls_name=cls.__name__)(func, cls_func_type(the_func))
-            self.original_attrs.append([cls, func_name, the_func])
-            setattr(cls, func_name, wrapped_func)
+        if self.target.includes:
+            for func_name in self.target.get_func_names(cls):
+                func = getattr(cls, func_name)
+                the_func = cls.__dict__[func_name] if func_name in cls.__dict__ else func
+
+                inj_counter = get_inj_func_count(self.target, the_func, func_name)
+                wrapped_func = _hook_wrapper(self.target, cls_name=cls.__name__)(
+                    func, inj_counter['func_type'], inj_counter['counter'])
+                self.original_attrs.append([cls, func_name, the_func])
+                setattr(cls, func_name, wrapped_func)
+        else:
+            cls_name = cls.__name__
+            for module_pack in global_search_module_attr(cls_name, cls):
+                self.original_attrs.append([module_pack, cls_name, cls])
+                setattr(module_pack, cls_name, self.target.injection)
 
     def hook_func(self, module, func_name):
         func = getattr(module, func_name)
         if isclass(func):
             raise HookEntryTypeErr('{} is a class, not func in module {}'.format(func_name, module))
-        import sys
-        for module_name, module_pack in sys.modules.items():
-            if module_name.startswith('_'):
-                continue
-            for other_func_name, other_func in module_pack.__dict__.items():
-                if other_func_name == func_name and other_func == func:
-                    wrapped_func = _hook_wrapper(self.target)(func)
-                    self.original_attrs.append([module_pack, func_name, func])
-                    setattr(module_pack, func_name, wrapped_func)
+        for module_pack in global_search_module_attr(func_name, func):
+            wrapped_func = _hook_wrapper(self.target)(func)
+            self.original_attrs.append([module_pack, func_name, func])
+            setattr(module_pack, func_name, wrapped_func)
 
     def hook_module(self, module):
         for func_name in self.target.get_func_names(module):

@@ -5,9 +5,18 @@ from injections import *
 from test.hook_project import run, async_run
 
 
+class MockPart3:
+    def __init__(self, x):
+        self.x = x
+
+    def prove(self, one, two=11):
+        return (one + two + self.x) * 100
+
+
 class TestInjectionWorks(unittest.TestCase):
     def test_integrated(self):
         hookers = multi_hooker()
+        hookers.add_hook('test.hook_project.part2.Part3', injection=MockPart3)
         hookers.add_hook('test.hook_project.part2.Part2', includes=[
             'cls_no_param', 'cls_arg', 'cls_kw', 'method_no_param', 'method_arg', 'method_kw', 'static_no_param',
             'static_arg', 'static_kw'
@@ -30,7 +39,6 @@ class TestInjectionAsyncWorks(unittest.IsolatedAsyncioTestCase):
                          injection_data={'test.hook_project.part1.part2_normal': {
                              '(23,){}': 'value1', '(45,){}': 'value2'
                          }})
-        hookers.add_hook('test.hook_project.part2_async.AsyncPart2', injection=None)
         with hookers:
             await async_run()
         await async_run()

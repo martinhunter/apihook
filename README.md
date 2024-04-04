@@ -54,15 +54,16 @@ elif HOOK_MODE == 'find class or function that match filter':
 
 ## limits
 1. hook class.member_method directly is not allowed.
-    - RIGHT: hookers.add_hook('your_project.part2.ExpClass', includes=['cls_method2', 'm_method2'])
-    - WRONG: hookers.add_hook('your_project.part2.ExpClass.m_method2')    # raise exception
+    - Right!!! hookers.add_hook('your_project.part2.ExpClass', includes=['cls_method2', 'm_method2'])
+    - Wrong!!! hookers.add_hook('your_project.part2.ExpClass.m_method2')    # raise exception
 2. all hooks are at function level, effect is global.
-    1. effect ExpClass in all files
-        - hookers.add_hook('your_project.part1.ExpClass')                     # setattr(ExpClass, f, wrapped(f)) for f in dir(ExpClass)
-    2. effect ExpClass.func in all files
-        - hookers.add_hook('your_project.part3.ExpClass', includes=['func'])  # setattr(ExpClass, func, wrapped(func))
-        - unittest.mock.patch('your_project.part3.ExpClass.func')             # setattr(ExpClass, func, Mock3())
-    3. effect only ExpClass directly used in current module(your_project.part2)
-        - unittest.mock.patch('your_project.part2.ExpClass')                  # setattr(part1, ExpClass, Mock1())
+    1. effect ExpClass.func in all files
+        - hookers.add_hook('your_project.part1.ExpClass', includes=['func'])  # setattr(ExpClass, func, wrapped(func))
+        - unittest.mock.patch('your_project.part1.ExpClass.func')             # setattr(ExpClass, func, Mock1())
+    2. effect only ExpClass directly used in current module(your_project.part2)
+        - unittest.mock.patch('your_project.part2.ExpClass')                  # setattr(part2, ExpClass, Mock1())
+    3. effect ExpClass, mo_func in all files
+        - hookers.add_hook('your_project.part3.ExpClass')                     # for module_pack in sys.module; setattr(module_pack, ExpClass, MockExpClass)
+        - hookers.add_hook('your_project.part3.mo_func')                      # for module_pack in sys.module; setattr(module_pack, mo_func, wrapped(mo_func))
 3. 
 

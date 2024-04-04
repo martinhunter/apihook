@@ -1,3 +1,6 @@
+from test.hook_project.part3 import Part3
+
+
 class Part2:
     cls_attr = 'cls attr'
     init_attr = 'init-attr-of-class'
@@ -36,7 +39,9 @@ class Part2:
 
     @staticmethod
     def static_kw(sta_x, sta_y=95, sta_z=33):
-        print('static_kw:', sta_x, sta_y, sta_z)
+        p3 = Part3(sta_x)
+        p3_prove = p3.prove(sta_y, sta_z)
+        print('static_kw:', sta_x, sta_y, sta_z, p3_prove)
 
     def unhooked(self):
         print('this is unhooked class func')
@@ -52,3 +57,5 @@ def part2_normalx():
 
 def unhooked():
     print('this is unhooked func')
+
+CONST = 21
