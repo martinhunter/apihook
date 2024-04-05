@@ -57,7 +57,7 @@ elif HOOK_MODE == 'find class or function that match filter':
 1. hook class.member_method directly is not allowed.
     - Right!!! hookers.add_hook('your_project.part2.ExpClass', includes=['cls_method2', 'm_method2'])
     - Wrong!!! hookers.add_hook('your_project.part2.ExpClass.m_method2')    # raise exception
-2. all hooks are at function level, effect is global.
+2. all hooks are at function level. Effect is global in your_project.
     1. effect ExpClass.func in all files
         - hookers.add_hook('your_project.part1.ExpClass', includes=['func'])  # setattr(ExpClass, func, wrapped(func))
         - unittest.mock.patch('your_project.part1.ExpClass.func')             # setattr(ExpClass, func, Mock1())

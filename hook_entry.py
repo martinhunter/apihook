@@ -209,10 +209,13 @@ def _hook_wrapper(target: Target, cls_name=''):
     return middle
 
 
-def global_search_module_attr(attr_name, attr):
+def global_search_module_attr(attr_name, attr, project_module_name=None):
     # you have to replace attr with new_attr in all modules, so new_attr will make effect in all files
     for module_name, module_pack in sys.modules.items():
         if module_name.startswith('_'):
+            continue
+        if project_module_name and not module_name.startswith(project_module_name):
+            # only your project will be effected
             continue
         for other_attr_name, other_attr in module_pack.__dict__.items():
             if other_attr_name == attr_name and other_attr == attr:
@@ -234,12 +237,21 @@ def get_inj_func_count(target: Target, the_func, func_name):
     return func_inj_counter[full_name]
 
 
+def get_project_module_name(module, level=1):
+    if module:
+        li = module.__name__.split('.')
+        project_module_name = '.'.join(li[:min(len(li), level)])
+    else:
+        project_module_name = None
+    return project_module_name
+
+
 class ApiHooker(HookContextMixin):
     def __init__(self, target: Target):
         self.target = target
         self.original_attrs = []
 
-    def hook_cls(self, cls):
+    def hook_cls(self, cls, module):
         if self.target.includes:
             for func_name in self.target.get_func_names(cls):
                 func = getattr(cls, func_name)
@@ -252,7 +264,7 @@ class ApiHooker(HookContextMixin):
                 setattr(cls, func_name, wrapped_func)
         else:
             cls_name = cls.__name__
-            for module_pack in global_search_module_attr(cls_name, cls):
+            for module_pack in global_search_module_attr(cls_name, cls, get_project_module_name(module)):
                 self.original_attrs.append([module_pack, cls_name, cls])
                 setattr(module_pack, cls_name, self.target.injection)
 
@@ -260,7 +272,7 @@ class ApiHooker(HookContextMixin):
         func = getattr(module, func_name)
         if isclass(func):
             raise HookEntryTypeErr('{} is a class, not func in module {}'.format(func_name, module))
-        for module_pack in global_search_module_attr(func_name, func):
+        for module_pack in global_search_module_attr(func_name, func, get_project_module_name(module)):
             wrapped_func = _hook_wrapper(self.target)(func)
             self.original_attrs.append([module_pack, func_name, func])
             setattr(module_pack, func_name, wrapped_func)
@@ -272,13 +284,18 @@ class ApiHooker(HookContextMixin):
     def start_hook(self):
         module, target = self.target.get_target()
         if ismodule(target):
+            # module is None
             self.hook_module(target)
         elif isclass(target):
-            self.hook_cls(target)
+            self.hook_cls(target, module)
         elif isfunction(target):
             self.hook_func(module, target.__name__)
         else:
-            raise HookEntryTypeErr('{} is not func, class, module'.format(target))
+            print('WARNING: {} is not func, class, module'.format(target))
+            if callable(target):
+                self.hook_cls(target, module)
+            else:
+                raise HookEntryTypeErr('{} is not callable'.format(target))
 
     def end_hook(self):
         # last in first out
