@@ -111,3 +111,10 @@ class InjectionDataBase(InjChange):
 
 class InjectionDataNoException(InjectionDataBase):
     data_exception = False
+
+
+class RepCeleryTask:
+    @staticmethod
+    def apply_async(args=None, kwargs=None, task_id=None, producer=None,
+                    link=None, link_error=None, shadow=None, **options):
+        pass
