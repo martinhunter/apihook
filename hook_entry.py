@@ -250,6 +250,7 @@ class ApiHooker(HookContextMixin):
     def __init__(self, target: Target):
         self.target = target
         self.original_attrs = []
+        self.replaced_attrs = []
 
     def hook_cls(self, cls, module):
         if self.target.includes:
@@ -261,11 +262,13 @@ class ApiHooker(HookContextMixin):
                 wrapped_func = _hook_wrapper(self.target, cls_name=cls.__name__)(
                     func, inj_counter['func_type'], inj_counter['counter'])
                 self.original_attrs.append([cls, func_name, the_func])
+                self.replaced_attrs.append([cls, func_name, wrapped_func])
                 setattr(cls, func_name, wrapped_func)
         else:
             cls_name = cls.__name__
             for module_pack in global_search_module_attr(cls_name, cls, get_project_module_name(module)):
                 self.original_attrs.append([module_pack, cls_name, cls])
+                self.replaced_attrs.append([cls, cls_name, self.target.injection])
                 setattr(module_pack, cls_name, self.target.injection)
 
     def hook_func(self, module, func_name):
@@ -275,6 +278,7 @@ class ApiHooker(HookContextMixin):
         for module_pack in global_search_module_attr(func_name, func, get_project_module_name(module)):
             wrapped_func = _hook_wrapper(self.target)(func)
             self.original_attrs.append([module_pack, func_name, func])
+            self.replaced_attrs.append([module_pack, func_name, wrapped_func])
             setattr(module_pack, func_name, wrapped_func)
 
     def hook_module(self, module):
@@ -302,6 +306,7 @@ class ApiHooker(HookContextMixin):
         while self.original_attrs:
             pack, func_name, func = self.original_attrs.pop()
             setattr(pack, func_name, func)
+        self.replaced_attrs = []
 
 
 class ApiHookers(HookContextMixin):
