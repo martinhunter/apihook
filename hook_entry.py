@@ -192,18 +192,21 @@ def _hook_wrapper(target: Target, cls=''):
                         injection = injection_cls(func_name, func_type, target.injection_data)
                     else:
                         injection = injection_cls(func_name, func_type)
-                    if reduce_arg(func_type) and not (args and isinstance(args[0], cls)):
-                        # fix classmethod and staticmethod
-                        injection.ins = cls
-                        new_args = args
+                    if cls:
+                        if reduce_arg(func_type) and not (args and isinstance(args[0], cls)):
+                            # fix classmethod and staticmethod
+                            injection.ins = cls
+                            new_args = args
+                        else:
+                            injection.ins = args[0]
+                            new_args = args[1:]
                     else:
-                        injection.ins = args[0]
-                        new_args = args[1:]
+                        new_args = args
                     result = injection.start(*new_args, **kwargs)
                     if injection.skip_func:
                         return injection.end(result)
                     else:
-                        if counter == 1 and reduce_arg(func_type) and (args and isinstance(args[0], cls)):
+                        if cls and counter == 1 and reduce_arg(func_type) and (args and isinstance(args[0], cls)):
                             # fix classmethod and staticmethod
                             new_args = args[1:]
                         else:
