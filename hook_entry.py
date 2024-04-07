@@ -194,7 +194,7 @@ def _hook_wrapper(target: Target, cls=''):
                         injection = injection_cls(func_name, func_type)
                     if reduce_arg(func_type) and not (args and isinstance(args[0], cls)):
                         # fix classmethod and staticmethod
-                        injection.kls = cls
+                        injection.ins = cls
                         new_args = args
                     else:
                         injection.ins = args[0]
