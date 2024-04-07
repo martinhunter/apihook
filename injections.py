@@ -2,7 +2,7 @@ import hashlib
 
 from loguru import logger
 
-from common import is_cls_func
+from common import is_cls_func, is_instance_func
 
 
 class InjectionBase:
@@ -12,6 +12,7 @@ class InjectionBase:
     def __init__(self, func_name, func_type):
         self.func_name = func_name
         self.func_type = func_type
+        self.ins = None
 
     def start(self, *args, **kwargs):
         return self.hook_start(*args, **kwargs)
@@ -65,8 +66,6 @@ class LogInjectionBase(InjectionBase):
     file = 'log.log'
 
     def start(self, *args, **kwargs):
-        if is_cls_func(self.func_type):
-            args = args[1:]
         self.arg = md5_params(*args, **kwargs)
         self.hook_start(*args, **kwargs)
 

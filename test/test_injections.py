@@ -5,6 +5,11 @@ from injections import *
 from test.hook_project import run, async_run
 
 
+class InjPrint(InjectionBase):
+    def hook_start(self, *args, **kwargs):
+        print('Hook:', args, kwargs)
+
+
 class MockPart3:
     def __init__(self, x):
         self.x = x
@@ -20,7 +25,7 @@ class TestInjectionWorks(unittest.TestCase):
         hookers.add_hook('test.hook_project.part2.Part2', includes=[
             'cls_no_param', 'cls_arg', 'cls_kw', 'method_no_param', 'method_arg', 'method_kw', 'static_no_param',
             'static_arg', 'static_kw'
-        ], injection=InjectionBase)
+        ], injection=InjPrint)
         hookers.add_hook('test.hook_project.part2', includes=['part2_normal'], injection=InjectionDataNoException,
                          injection_data={'test.hook_project.part1.part2_normal': {
                              '(23,){}': 'value1', '(45,){}': 'value2'

@@ -66,5 +66,25 @@ elif HOOK_MODE == 'find class or function that match filter':
     3. effect ExpClass, mo_func in all files
         - hookers.add_hook('your_project.part3.ExpClass')                     # for module_pack in sys.module; setattr(module_pack, ExpClass, MockExpClass)
         - hookers.add_hook('your_project.part3.mo_func')                      # for module_pack in sys.module; setattr(module_pack, mo_func, wrapped(mo_func))
-3. 
+3. can not hook the following types of code
+    - classmethod/staticmethod that first param is its own class
+        - For example:
+            ```
+            class SomeCls:
+                @classmethod
+                def compare(cls, other: SomeCls):
+                    pass
+                @staticmethod
+                def compare2(other: SomeCls):
+                    pass
+            ```
+        - Why: To fix the following situation, temp resolve is: `args=args[1:] if args and isinstance(args[0], SomeCls)`. So param "other" will be removed.
+            ```
+            some = SomeCls()
+            some.cls_method(21)  # function's args is (<Some object at 0x04C6F328>, 21), this is unexpected param and will raise error
+            SomeCls.cls_method(21)  # function's args is (21), this is expected param
+            # Inside the hooked function, can not tell if it's instance call or class call.
+            ```
+            
+            
 
