@@ -50,12 +50,16 @@ class Part2:
 def part2_normal(part_n, part_o=92):
     print('normal2 %s---' % part_n, part_o)
 
+CONST = 21
+
+const_var = {
+    'one': 22
+}
 
 def part2_normalx():
-    print('normalx')
+    print('normalx', CONST, const_var)
 
 
 def unhooked():
     print('this is unhooked func')
 
-CONST = 21

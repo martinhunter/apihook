@@ -31,6 +31,8 @@ class TestInjectionWorks(unittest.TestCase):
                              '(23,){}': 'value1', '(45,){}': 'value2'
                          }})
         hookers.add_hook('test.hook_project.part2.part2_normalx', injection=None)
+        hookers.add_hook('test.hook_project.part2.CONST', injection=999)
+        hookers.add_hook('test.hook_project.part2.const_var', injection={'changed_var': 'hooked'})
         with hookers:
             run()
 

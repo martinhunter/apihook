@@ -136,6 +136,12 @@ class Target:
     def get_target(self):
         return _get_target_by_type(self.name)
 
+    def get_variable(self):
+        getter, cls_module_name = _get_target(self.name)
+        module = getter()
+        return module, cls_module_name
+
+
 
 def _hook_wrapper(target: Target, cls=''):
     def middle(func, func_type=None, counter=1):
@@ -300,6 +306,14 @@ class ApiHooker(HookContextMixin):
         for func_name in self.target.get_func_names(module):
             self.hook_func(module, func_name)
 
+    def hook_variable(self):
+        module, attr_name = self.target.get_variable()
+        value = getattr(module, attr_name)
+        for module_pack in global_search_module_attr(attr_name, value, get_project_module_name(module)):
+            self.original_attrs.append([module_pack, attr_name, value])
+            self.replaced_attrs.append([module_pack, attr_name, self.target.injection])
+            setattr(module_pack, attr_name, self.target.injection)
+
     def start_hook(self):
         module, target = self.target.get_target()
         if ismodule(target):
@@ -314,7 +328,7 @@ class ApiHooker(HookContextMixin):
             if callable(target):
                 self.hook_cls(target, module)
             else:
-                raise HookEntryTypeErr('{} is not callable'.format(target))
+                self.hook_variable()
 
     def end_hook(self):
         # last in first out

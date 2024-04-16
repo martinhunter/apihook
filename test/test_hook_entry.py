@@ -13,6 +13,8 @@ class TestHookEntryWorks(unittest.TestCase):
         hookers.add_hook('test.hook_project.part2', includes=['part2_normal'])
         hookers.add_hook('test.hook_project.part2.part2_normalx')
         hookers.add_hook('test.hook_project.part2.part2_normalx', injection=None)
+        hookers.add_hook('test.hook_project.part2.CONST')
+        hookers.add_hook('test.hook_project.part2.const_var')
         with hookers:
             run()
         run()
@@ -44,24 +46,6 @@ class TestHookEntryAsyncWorks(unittest.IsolatedAsyncioTestCase):
 
 
 class TestHookEntryException(unittest.TestCase):
-    def test_raise_hook_constant(self):
-        hookers = multi_hooker()
-        hooker = api_hooker('test.hook_project.part2.CONST')
-        hookers.add(hooker)
-        with self.assertRaises(HookEntryTypeErr):
-            # check target type when start hook
-            hookers.start_hook()
-        hookers.rm_hook(hooker)
-
-    def test_raise_hook_param(self):
-        hookers = multi_hooker()
-        hookers.add_hook('test.hook_project.part2.CONST')
-        hookers.add_hook('test.hook_project.part2_async', includes=['AsyncPart2'])
-        hookers.add_hook(None)
-        for hooker in hookers:
-            with self.assertRaises(HookEntryTypeErr):
-                hooker.start_hook()
-
     def test_raise_hook_not_exist(self):
         hookers = multi_hooker()
         hookers.add_hook('test.hook_project.not_exist')
