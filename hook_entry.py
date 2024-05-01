@@ -265,8 +265,6 @@ def global_search_module_attr(attr_name, attr, project_module_name=None):
             # only your project will be effected
             continue
         for other_attr_name, other_attr in module_pack.__dict__.items():
-            if other_attr_name == attr_name == 'part2_normal':
-                print('-----', module_pack, other_attr, attr)
             if other_attr_name == attr_name and other_attr == attr:
                 yield module_pack
 
