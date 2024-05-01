@@ -1,7 +1,6 @@
 import unittest
 
-from exceptions import HookEntryTypeErr
-from hook_entry import multi_hooker, api_hooker, _dot_lookup, _get_target
+from hook_entry import multi_hooker, _get_target
 from test.hook_project import run, async_run
 
 
@@ -26,6 +25,7 @@ class TestHookEntryWorks(unittest.TestCase):
         with hookers as h:
             with hookers2 as h2:
                 run()
+
     def test_const(self):
         hookers = multi_hooker()
         hookers.add_hook('test.hook_project.part2.CONST', injection=22)

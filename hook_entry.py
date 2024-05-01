@@ -265,6 +265,8 @@ def global_search_module_attr(attr_name, attr, project_module_name=None):
             # only your project will be effected
             continue
         for other_attr_name, other_attr in module_pack.__dict__.items():
+            if other_attr_name == attr_name == 'part2_normal':
+                print('-----', module_pack, other_attr, attr)
             if other_attr_name == attr_name and other_attr == attr:
                 yield module_pack
 
@@ -405,33 +407,34 @@ class ApiHookers(HookContextMixin):
     def rm_hook(self, hooker: ApiHooker):
         self.hookers.remove(hooker)
 
+    @staticmethod
+    def _log_hooked_details(action):
+        if _hooked_global:
+            hook_log.info("CURRENTLY HOOKED AFTER {}".format(action))
+        else:
+            hook_log.info("NOTHING CURRENTLY HOOKED AFTER {}".format(action))
+        for idx, layer in enumerate(_hooked_global):
+            if layer:
+                hook_log.info("__layer {} hooks".format(idx))
+            else:
+                hook_log.info("__layer {} hooks empty".format(idx))
+            for h in layer:
+                for module, attr, value in h.replaced_attrs:
+                    hook_log.info("__module:{} attr:{} value:{}".format(module, attr, value))
+
     def start_hook(self):
         hook_log.info("START: layer {} multi hook".format(len(_hooked_global)))
         _hooked_global.append(self.hookers)
         for hooker in self.hookers:
             hooker.start_hook()
-        if DEBUG_API_HOOK:
-            hook_log.info("CURRENTLY HOOKED AFTER __ENTER__")
-            for idx, layer in enumerate(_hooked_global):
-                hook_log.info("__layer {} hooks".format(idx))
-                for h in layer:
-                    for module, attr, value in h.replaced_attrs:
-                        hook_log.info("__module:{} attr:{} value:{}".format(module, attr, value))
+        self._log_hooked_details('__ENTER__')
 
     def end_hook(self):
         # last in first out
         for hooker in reversed(self.hookers):
             hooker.end_hook()
         _hooked_global.pop()
-        if _hooked_global:
-            hook_log.info("CURRENTLY HOOKED AFTER __EXIT__")
-        else:
-            hook_log.info("CURRENTLY NOTHING HOOKED AFTER __EXIT__")
-        for idx, layer in enumerate(_hooked_global):
-            hook_log.info("__layer {} hooks".format(idx))
-            for h in layer:
-                for module, attr, value in h.replaced_attrs:
-                    hook_log.info("__module:{} attr:{} value:{}".format(module, attr, value))
+        self._log_hooked_details('__EXIT__')
         hook_log.info("END: layer {} multi hook".format(len(_hooked_global)))
 
 
