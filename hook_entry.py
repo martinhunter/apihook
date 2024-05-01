@@ -11,7 +11,7 @@ from common import reduce_arg, cls_func_type
 from conf import *
 from exceptions import HookEntryTypeErr, BadConfiguration
 from hook_logger import hook_log
-from injections import TestInjection
+from injections import TestInjection, InjectionBase
 
 _hooked_global = []
 
@@ -347,8 +347,8 @@ class ApiHooker(HookContextMixin):
         func = getattr(module, func_name)
         if isclass(func):
             raise HookEntryTypeErr('{} is a class, not func in module {}'.format(func_name, module))
+        wrapped_func = _hook_wrapper(self.target)(func)
         for module_pack in global_search_module_attr(func_name, func, get_project_module_name(module)):
-            wrapped_func = _hook_wrapper(self.target)(func)
             self.set_hook(module_pack, func_name, func, wrapped_func)
 
     def hook_module(self, module):
@@ -364,6 +364,12 @@ class ApiHooker(HookContextMixin):
 
     def start_hook(self):
         module, target = self.target.get_target()
+        try:
+            if issubclass(target, InjectionBase):
+                self.hook_variable()
+                return
+        except TypeError:
+            pass
         if ismodule(target):
             # module is None
             self.hook_module(target)
