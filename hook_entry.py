@@ -2,6 +2,7 @@ import inspect
 import os
 import re
 import sys
+from collections import defaultdict
 from functools import wraps
 from inspect import ismodule, isclass, isfunction, iscoroutinefunction
 from typing import List, Any
@@ -9,6 +10,17 @@ from typing import List, Any
 from common import reduce_arg, cls_func_type
 from exceptions import HookEntryTypeErr
 from injections import TestInjection
+
+_hooked_global = {'hookers': None}
+
+
+def add_hooked_global():
+    pass
+
+
+def pop_hooked_global():
+    pass
+
 
 _cwd = os.getcwd()
 
@@ -142,7 +154,6 @@ class Target:
         return module, cls_module_name
 
 
-
 def _hook_wrapper(target: Target, cls=''):
     def middle(func, func_type=None, counter=1):
         if cls:
@@ -243,8 +254,22 @@ def global_search_module_attr(attr_name, attr, project_module_name=None):
                 yield module_pack
 
 
-def get_inj_func_count(target: Target, the_func, func_name):
+def get_full_func_name(target: Target, func_name: str):
     full_name = '{}.{}'.format(target.target_name, func_name)
+    return full_name
+
+
+def get_inj_func_count(full_name, the_func):
+    """
+    staticmethod, classmethod will be turned into function if injected multiple times,
+    staticmethod, classmethod, function parameters have to be handled differently.
+    so counter is required to distinguish.
+    :param target:
+    :param the_func:
+    :param func_name:
+    :return: func_type and its counter
+    """
+
     if full_name in func_inj_counter:
         item = func_inj_counter[full_name]
         item['counter'] += 1
@@ -272,6 +297,7 @@ class ApiHooker(HookContextMixin):
         self.target = target
         self.original_attrs = []
         self.replaced_attrs = []
+        self.inj_counter = defaultdict(int)
 
     def hook_cls(self, cls, module):
         if self.target.includes:
@@ -279,9 +305,11 @@ class ApiHooker(HookContextMixin):
                 func = getattr(cls, func_name)
                 the_func = cls.__dict__[func_name] if func_name in cls.__dict__ else func
 
-                inj_counter = get_inj_func_count(self.target, the_func, func_name)
+                full_name = get_full_func_name(self.target, func_name)
+                inj_counter = get_inj_func_count(full_name, the_func)
                 wrapped_func = _hook_wrapper(self.target, cls=cls)(
                     func, inj_counter['func_type'], inj_counter['counter'])
+                self.inj_counter[full_name] += 1
                 self.original_attrs.append([cls, func_name, the_func])
                 self.replaced_attrs.append([cls, func_name, wrapped_func])
                 setattr(cls, func_name, wrapped_func)
@@ -336,6 +364,8 @@ class ApiHooker(HookContextMixin):
             pack, func_name, func = self.original_attrs.pop()
             setattr(pack, func_name, func)
         self.replaced_attrs = []
+        for full_name, counter in self.inj_counter.items():
+            func_inj_counter[full_name]['counter'] -= counter
 
 
 class ApiHookers(HookContextMixin):
@@ -363,7 +393,6 @@ class ApiHookers(HookContextMixin):
         # last in first out
         for hooker in reversed(self.hookers):
             hooker.end_hook()
-        func_inj_counter.clear()  # make hooker context not effect each other
 
 
 def api_hooker(target: Any, includes: List[str] = None, exclude_regex: str = '_.*',
