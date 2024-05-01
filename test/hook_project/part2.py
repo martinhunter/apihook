@@ -1,5 +1,10 @@
 from test.hook_project.part3 import Part3
 
+CONST = 21
+
+const_var = {
+    'one': 22
+}
 
 class Part2:
     cls_attr = 'cls attr'
@@ -50,14 +55,9 @@ class Part2:
 def part2_normal(part_n, part_o=92):
     print('normal2 %s---' % part_n, part_o)
 
-CONST = 21
-
-const_var = {
-    'one': 22
-}
 
 def part2_normalx():
-    print('normalx', CONST, const_var)
+    print('normalx CONST is:', CONST, 'const_var is:', const_var)
 
 
 def unhooked():

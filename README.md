@@ -66,7 +66,12 @@ elif HOOK_MODE == 'find class or function that match filter':
     3. effect ExpClass, mo_func in all files
         - hookers.add_hook('your_project.part3.ExpClass')                     # for module_pack in sys.module; setattr(module_pack, ExpClass, MockExpClass)
         - hookers.add_hook('your_project.part3.mo_func')                      # for module_pack in sys.module; setattr(module_pack, mo_func, wrapped(mo_func))
-3. can not hook the following types of code
+3. hook variables
+    1. variable_name must be set in string.
+        - hookers.add_hook('your_project.module_file.variable', injection='new_value')  # right
+        - hookers.add_hook('your_project.module_file', includes=['variable'])  # wrong! variable will be treated as function and will be wrapped in function
+        - hookers.add_hook(variable)  # wrong! value will be read and variable_name will be lost
+4. can not hook the following types of code
     - classmethod/staticmethod that first param is its own class
         - For example:
             ```

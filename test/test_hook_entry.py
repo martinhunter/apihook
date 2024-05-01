@@ -15,9 +15,22 @@ class TestHookEntryWorks(unittest.TestCase):
         hookers.add_hook('test.hook_project.part2.part2_normalx', injection=None)
         hookers.add_hook('test.hook_project.part2.CONST')
         hookers.add_hook('test.hook_project.part2.const_var')
+        hookers2 = multi_hooker()
+        hookers2.add_hook('test.hook_project.part2.Part2', includes=['cls_kw'])
+        hookers2.add_hook('test.hook_project.part2.Part2', includes=['cls_kw', 'method_kw', 'static_kw'])
+        hookers2.add_hook('test.hook_project.part2', includes=['part2_normal'])
+        hookers2.add_hook('test.hook_project.part2.part2_normalx')
+        hookers2.add_hook('test.hook_project.part2.part2_normalx', injection=None)
+        hookers2.add_hook('test.hook_project.part2.CONST')
+        hookers2.add_hook('test.hook_project.part2.const_var')
+        with hookers as h:
+            with hookers2 as h2:
+                run()
+    def test_const(self):
+        hookers = multi_hooker()
+        hookers.add_hook('test.hook_project.part2.CONST', injection=22)
         with hookers:
             run()
-        run()
 
     def test_imported(self):
         import sys

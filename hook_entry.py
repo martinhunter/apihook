@@ -319,11 +319,9 @@ class ApiHooker(HookContextMixin):
             self.original_attrs.append([the_module, the_attr, original_value])
             self.replaced_attrs.append([the_module, the_attr, new_value])
             setattr(the_module, the_attr, new_value)
-            if DEBUG_API_HOOK:
-                hook_log.info('HOOKED module:{} attr:{}'.format(the_module, the_attr))
+            hook_log.info('HOOKED module:{} attr:{} value:{}'.format(the_module, the_attr, new_value))
         else:
-            if DEBUG_API_HOOK:
-                hook_log.warning('NOT HOOK module:{} attr:{}'.format(the_module, the_attr))
+            hook_log.warning('NOT HOOK module:{} attr:{} value:{}'.format(the_module, the_attr, original_value))
 
     def hook_cls(self, cls, module):
         if self.target.includes:
@@ -413,8 +411,9 @@ class ApiHookers(HookContextMixin):
         for hooker in self.hookers:
             hooker.start_hook()
         if DEBUG_API_HOOK:
-            hook_log.info("START: CURRENTLY HOOKED")
-            for layer in _hooked_global:
+            hook_log.info("CURRENTLY HOOKED AFTER __ENTER__")
+            for idx, layer in enumerate(_hooked_global):
+                hook_log.info("__layer {} hooks".format(idx))
                 for h in layer:
                     for module, attr, value in h.replaced_attrs:
                         hook_log.info("__module:{} attr:{} value:{}".format(module, attr, value))
@@ -425,10 +424,11 @@ class ApiHookers(HookContextMixin):
             hooker.end_hook()
         _hooked_global.pop()
         if _hooked_global:
-            hook_log.info("END: CURRENTLY HOOKED")
+            hook_log.info("CURRENTLY HOOKED AFTER __EXIT__")
         else:
-            hook_log.info("END: CURRENTLY NOTHING HOOKED")
-        for layer in _hooked_global:
+            hook_log.info("CURRENTLY NOTHING HOOKED AFTER __EXIT__")
+        for idx, layer in enumerate(_hooked_global):
+            hook_log.info("__layer {} hooks".format(idx))
             for h in layer:
                 for module, attr, value in h.replaced_attrs:
                     hook_log.info("__module:{} attr:{} value:{}".format(module, attr, value))
