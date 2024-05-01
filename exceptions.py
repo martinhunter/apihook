@@ -12,3 +12,7 @@ class YamlParserErr(Exception):
 
 class YamlParserLoadErr(YamlParserErr):
     pass
+
+
+class BadConfiguration(Exception):
+    pass

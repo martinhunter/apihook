@@ -7,19 +7,32 @@ from functools import wraps
 from inspect import ismodule, isclass, isfunction, iscoroutinefunction
 from typing import List, Any
 
+from api_hook_logger import hook_log
 from common import reduce_arg, cls_func_type
-from exceptions import HookEntryTypeErr
+from conf import *
+from exceptions import HookEntryTypeErr, BadConfiguration
 from injections import TestInjection
 
-_hooked_global = {'hookers': None}
+_hooked_global = []
 
 
-def add_hooked_global():
-    pass
-
-
-def pop_hooked_global():
-    pass
+def _check_hooked_global(the_module, the_attr):
+    if INJECTION_LEVEL == INJECTION_LEVEL_GLOBAL:
+        for h in _hooked_global:
+            for module, attr, _ in h.original_attrs:
+                if the_module == module and the_attr == attr:
+                    return False
+        return True
+    elif INJECTION_LEVEL == INJECTION_LEVEL_MULTI:
+        for h in _hooked_global[:-1]:
+            for module, attr, _ in h.original_attrs:
+                if the_module == module and the_attr == attr:
+                    return False
+        return True
+    elif INJECTION_LEVEL == INJECTION_LEVEL_SINGLE:
+        return True
+    else:
+        raise BadConfiguration('injection level:%s not supported'.format(INJECTION_LEVEL))
 
 
 _cwd = os.getcwd()
@@ -299,8 +312,18 @@ class ApiHooker(HookContextMixin):
         self.replaced_attrs = []
         self.inj_counter = defaultdict(int)
 
+    def set_hook(self, the_module, the_attr, original_value, new_value):
+        if _check_hooked_global(the_module, the_attr):
+            self.original_attrs.append([the_module, the_attr, original_value])
+            self.replaced_attrs.append([the_module, the_attr, new_value])
+            setattr(the_module, the_attr, new_value)
+        else:
+            if DEBUG_API_HOOK:
+                hook_log.warning('NOT HOOK module:{} attr:{}'.format(the_module, the_attr))
+
     def hook_cls(self, cls, module):
         if self.target.includes:
+            # cls is not changed, funcs of cls will be hooked
             for func_name in self.target.get_func_names(cls):
                 func = getattr(cls, func_name)
                 the_func = cls.__dict__[func_name] if func_name in cls.__dict__ else func
@@ -310,37 +333,32 @@ class ApiHooker(HookContextMixin):
                 wrapped_func = _hook_wrapper(self.target, cls=cls)(
                     func, inj_counter['func_type'], inj_counter['counter'])
                 self.inj_counter[full_name] += 1
-                self.original_attrs.append([cls, func_name, the_func])
-                self.replaced_attrs.append([cls, func_name, wrapped_func])
-                setattr(cls, func_name, wrapped_func)
+                self.set_hook(cls, func_name, the_func, wrapped_func)
         else:
+            # cls need to be hooked in all modules
             cls_name = cls.__name__
             for module_pack in global_search_module_attr(cls_name, cls, get_project_module_name(module)):
-                self.original_attrs.append([module_pack, cls_name, cls])
-                self.replaced_attrs.append([cls, cls_name, self.target.injection])
-                setattr(module_pack, cls_name, self.target.injection)
+                self.set_hook(module_pack, cls_name, cls, self.target.injection)
 
     def hook_func(self, module, func_name):
+        # func need to be hooked in all modules
         func = getattr(module, func_name)
         if isclass(func):
             raise HookEntryTypeErr('{} is a class, not func in module {}'.format(func_name, module))
         for module_pack in global_search_module_attr(func_name, func, get_project_module_name(module)):
             wrapped_func = _hook_wrapper(self.target)(func)
-            self.original_attrs.append([module_pack, func_name, func])
-            self.replaced_attrs.append([module_pack, func_name, wrapped_func])
-            setattr(module_pack, func_name, wrapped_func)
+            self.set_hook(module_pack, func_name, func, wrapped_func)
 
     def hook_module(self, module):
         for func_name in self.target.get_func_names(module):
             self.hook_func(module, func_name)
 
     def hook_variable(self):
+        # variables need to be hooked in all modules
         module, attr_name = self.target.get_variable()
         value = getattr(module, attr_name)
         for module_pack in global_search_module_attr(attr_name, value, get_project_module_name(module)):
-            self.original_attrs.append([module_pack, attr_name, value])
-            self.replaced_attrs.append([module_pack, attr_name, self.target.injection])
-            setattr(module_pack, attr_name, self.target.injection)
+            self.set_hook(module_pack, attr_name, value, self.target.injection)
 
     def start_hook(self):
         module, target = self.target.get_target()
@@ -386,6 +404,7 @@ class ApiHookers(HookContextMixin):
         self.hookers.remove(hooker)
 
     def start_hook(self):
+        _hooked_global.append(self.hookers)
         for hooker in self.hookers:
             hooker.start_hook()
 
@@ -393,6 +412,7 @@ class ApiHookers(HookContextMixin):
         # last in first out
         for hooker in reversed(self.hookers):
             hooker.end_hook()
+        _hooked_global.pop()
 
 
 def api_hooker(target: Any, includes: List[str] = None, exclude_regex: str = '_.*',
