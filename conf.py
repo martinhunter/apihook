@@ -1,4 +1,6 @@
-DEBUG_API_HOOK = False  # log more info. exp: each injection triggered
+import logging
+
+DEBUG_API_HOOK = logging.DEBUG
 
 # 10: each func/object can only be injected once globally, and will not be replaced by later setter
 # TODO: 20: each func/object can only be injected once globally, but will be replaced by later setter

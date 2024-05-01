@@ -7,10 +7,10 @@ from functools import wraps
 from inspect import ismodule, isclass, isfunction, iscoroutinefunction
 from typing import List, Any
 
-from api_hook_logger import hook_log
 from common import reduce_arg, cls_func_type
 from conf import *
 from exceptions import HookEntryTypeErr, BadConfiguration
+from hook_logger import hook_log
 from injections import TestInjection
 
 _hooked_global = []
@@ -18,16 +18,18 @@ _hooked_global = []
 
 def _check_hooked_global(the_module, the_attr):
     if INJECTION_LEVEL == INJECTION_LEVEL_GLOBAL:
-        for h in _hooked_global:
-            for module, attr, _ in h.original_attrs:
-                if the_module == module and the_attr == attr:
-                    return False
+        for layer in _hooked_global:
+            for h in layer:
+                for module, attr, _ in h.original_attrs:
+                    if the_module == module and the_attr == attr:
+                        return False
         return True
     elif INJECTION_LEVEL == INJECTION_LEVEL_MULTI:
-        for h in _hooked_global[:-1]:
-            for module, attr, _ in h.original_attrs:
-                if the_module == module and the_attr == attr:
-                    return False
+        for layer in _hooked_global[:-1]:
+            for h in layer:
+                for module, attr, _ in h.original_attrs:
+                    if the_module == module and the_attr == attr:
+                        return False
         return True
     elif INJECTION_LEVEL == INJECTION_LEVEL_SINGLE:
         return True
@@ -317,6 +319,8 @@ class ApiHooker(HookContextMixin):
             self.original_attrs.append([the_module, the_attr, original_value])
             self.replaced_attrs.append([the_module, the_attr, new_value])
             setattr(the_module, the_attr, new_value)
+            if DEBUG_API_HOOK:
+                hook_log.info('HOOKED module:{} attr:{}'.format(the_module, the_attr))
         else:
             if DEBUG_API_HOOK:
                 hook_log.warning('NOT HOOK module:{} attr:{}'.format(the_module, the_attr))
@@ -404,15 +408,31 @@ class ApiHookers(HookContextMixin):
         self.hookers.remove(hooker)
 
     def start_hook(self):
+        hook_log.info("START: layer {} multi hook".format(len(_hooked_global)))
         _hooked_global.append(self.hookers)
         for hooker in self.hookers:
             hooker.start_hook()
+        if DEBUG_API_HOOK:
+            hook_log.info("START: CURRENTLY HOOKED")
+            for layer in _hooked_global:
+                for h in layer:
+                    for module, attr, value in h.replaced_attrs:
+                        hook_log.info("__module:{} attr:{} value:{}".format(module, attr, value))
 
     def end_hook(self):
         # last in first out
         for hooker in reversed(self.hookers):
             hooker.end_hook()
         _hooked_global.pop()
+        if _hooked_global:
+            hook_log.info("END: CURRENTLY HOOKED")
+        else:
+            hook_log.info("END: CURRENTLY NOTHING HOOKED")
+        for layer in _hooked_global:
+            for h in layer:
+                for module, attr, value in h.replaced_attrs:
+                    hook_log.info("__module:{} attr:{} value:{}".format(module, attr, value))
+        hook_log.info("END: layer {} multi hook".format(len(_hooked_global)))
 
 
 def api_hooker(target: Any, includes: List[str] = None, exclude_regex: str = '_.*',

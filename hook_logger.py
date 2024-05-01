@@ -1,8 +1,10 @@
 import logging
 import os
 
+from conf import DEBUG_API_HOOK
 
-def create_logger(name, folder=None, level=logging.DEBUG):
+
+def create_logger(name, level=logging.DEBUG, folder=None):
     logger = logging.getLogger(name)
     logger.setLevel(level)
     log_file_path = os.path.join(folder or os.path.dirname(__file__), '{}.log'.format(name))
@@ -13,4 +15,4 @@ def create_logger(name, folder=None, level=logging.DEBUG):
     return logger
 
 
-hook_log = create_logger('hook_log')
+hook_log = create_logger('hook_log', level=DEBUG_API_HOOK)
