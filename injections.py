@@ -2,7 +2,9 @@ import hashlib
 
 from loguru import logger
 
-from common import is_cls_func, is_instance_func
+
+class ReplaceBase:
+    pass
 
 
 class InjectionBase:

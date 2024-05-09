@@ -11,7 +11,7 @@ from common import reduce_arg, cls_func_type
 from conf import *
 from exceptions import HookEntryTypeErr, BadConfiguration
 from hook_logger import hook_log
-from injections import TestInjection, InjectionBase
+from injections import TestInjection, ReplaceBase
 
 _hooked_global = []
 
@@ -319,9 +319,9 @@ class ApiHooker(HookContextMixin):
             self.original_attrs.append([the_module, the_attr, original_value])
             self.replaced_attrs.append([the_module, the_attr, new_value])
             setattr(the_module, the_attr, new_value)
-            hook_log.info('HOOKED module:{} attr:{} value:{}'.format(the_module, the_attr, new_value))
+            hook_log.info('HOOKED Module:{} Attr:{} Value:{}'.format(the_module, the_attr, new_value))
         else:
-            hook_log.warning('NOT HOOK module:{} attr:{} value:{}'.format(the_module, the_attr, original_value))
+            hook_log.warning('NOT HOOK Module:{} Attr:{} Value:{}'.format(the_module, the_attr, original_value))
 
     def hook_cls(self, cls, module):
         if self.target.includes:
@@ -365,7 +365,7 @@ class ApiHooker(HookContextMixin):
     def start_hook(self):
         module, target = self.target.get_target()
         try:
-            if issubclass(target, InjectionBase):
+            if issubclass(target, ReplaceBase):
                 self.hook_variable()
                 return
         except TypeError:
@@ -378,7 +378,7 @@ class ApiHooker(HookContextMixin):
         elif isfunction(target):
             self.hook_func(module, target.__name__)
         else:
-            print('WARNING: {} is not func, class, module'.format(target))
+            hook_log.warning('{} is not func, class, module'.format(target))
             if callable(target):
                 self.hook_cls(target, module)
             else:
@@ -424,7 +424,7 @@ class ApiHookers(HookContextMixin):
                 hook_log.info("__layer {} hooks empty".format(idx))
             for h in layer:
                 for module, attr, value in h.replaced_attrs:
-                    hook_log.info("__module:{} attr:{} value:{}".format(module, attr, value))
+                    hook_log.info("__Module:{} Attr:{} Value:{}".format(module, attr, value))
 
     def start_hook(self):
         hook_log.info("START: layer {} multi hook".format(len(_hooked_global)))
