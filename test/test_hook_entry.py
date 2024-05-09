@@ -20,15 +20,15 @@ class TestHookEntryWorks(unittest.TestCase):
         hookers2.add_hook('test.hook_project.part2', includes=['part2_normal'])
         hookers2.add_hook('test.hook_project.part2.part2_normalx')
         hookers2.add_hook('test.hook_project.part2.part2_normalx', injection=None)
-        hookers2.add_hook('test.hook_project.part2.CONST')
-        hookers2.add_hook('test.hook_project.part2.const_var')
+        hookers2.add_hook('test.hook_project.part2.CONST', replace=True)
+        hookers2.add_hook('test.hook_project.part2.const_var', replace=True)
         with hookers as h:
             with hookers2 as h2:
                 run()
 
     def test_const(self):
         hookers = multi_hooker()
-        hookers.add_hook('test.hook_project.part2.CONST', injection=22)
+        hookers.add_hook('test.hook_project.part2.CONST', injection=22, replace=True)
         with hookers:
             run()
 

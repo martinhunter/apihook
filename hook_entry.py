@@ -125,12 +125,14 @@ class HookContextMixin:
 
 class Target:
     def __init__(self, name: Any, includes: List[str] = None, exclude_regex: str = '_.*',
-                 injection=TestInjection, injection_data=None):
+                 injection=TestInjection, injection_data=None, replace=False):
         self.name = name
         self.includes = includes
         self.exclude_regex = re.compile(exclude_regex)
         self.injection = self.parse_injection(injection)
         self.injection_data = injection_data
+        self.replace = replace
+
         self.func_cls_map = {}
 
     @property
@@ -355,7 +357,7 @@ class ApiHooker(HookContextMixin):
         for func_name in self.target.get_func_names(module):
             self.hook_func(module, func_name)
 
-    def hook_variable(self):
+    def replace_object(self):
         # variables need to be hooked in all modules
         module, attr_name = self.target.get_variable()
         value = getattr(module, attr_name)
@@ -363,13 +365,10 @@ class ApiHooker(HookContextMixin):
             self.set_hook(module_pack, attr_name, value, self.target.injection)
 
     def start_hook(self):
+        if self.target.replace:
+            self.replace_object()
+            return
         module, target = self.target.get_target()
-        try:
-            if issubclass(target, ReplaceBase):
-                self.hook_variable()
-                return
-        except TypeError:
-            pass
         if ismodule(target):
             # module is None
             self.hook_module(target)
@@ -378,11 +377,11 @@ class ApiHooker(HookContextMixin):
         elif isfunction(target):
             self.hook_func(module, target.__name__)
         else:
-            hook_log.warning('{} is not func, class, module'.format(target))
             if callable(target):
                 self.hook_cls(target, module)
             else:
-                self.hook_variable()
+                hook_log.warning('{} is not func, class, module'.format(target))
+                raise HookEntryTypeErr('Want to replace variable value with new value? Use .add_hook(.., replace=True)')
 
     def end_hook(self):
         # last in first out
@@ -402,8 +401,8 @@ class ApiHookers(HookContextMixin):
         return iter(self.hookers)
 
     def add_hook(self, target: Any, includes: List[str] = None, exclude_regex: str = '_.*',
-                 injection=TestInjection, injection_data=None):
-        self.hookers.append(api_hooker(target, includes, exclude_regex, injection, injection_data))
+                 injection=TestInjection, injection_data=None, replace=False):
+        self.hookers.append(api_hooker(target, includes, exclude_regex, injection, injection_data, replace))
 
     def add(self, hooker: ApiHooker):
         self.hookers.append(hooker)
@@ -414,17 +413,15 @@ class ApiHookers(HookContextMixin):
     @staticmethod
     def _log_hooked_details(action):
         if _hooked_global:
-            hook_log.info("CURRENTLY HOOKED AFTER {}".format(action))
+            hook_log.info("CURRENTLY HOOKED AFTER {}, Total Layers:{}".format(action, len(_hooked_global)))
         else:
             hook_log.info("NOTHING CURRENTLY HOOKED AFTER {}".format(action))
         for idx, layer in enumerate(_hooked_global):
-            if layer:
-                hook_log.info("__layer {} hooks".format(idx))
-            else:
-                hook_log.info("__layer {} hooks empty".format(idx))
+            prefix = '__' * (idx+1)
+            hook_log.info("{}layer {} hooks".format(prefix,idx))
             for h in layer:
                 for module, attr, value in h.replaced_attrs:
-                    hook_log.info("__Module:{} Attr:{} Value:{}".format(module, attr, value))
+                    hook_log.info("{}Module:{} Attr:{} Value:{}".format(prefix, module, attr, value))
 
     def start_hook(self):
         hook_log.info("START: layer {} multi hook".format(len(_hooked_global)))
@@ -443,7 +440,7 @@ class ApiHookers(HookContextMixin):
 
 
 def api_hooker(target: Any, includes: List[str] = None, exclude_regex: str = '_.*',
-               injection=TestInjection, injection_data=None):
+               injection=TestInjection, injection_data=None, replace=False):
     """
     hook specified functions
     :param target: the module/cls to be hooked
@@ -451,9 +448,10 @@ def api_hooker(target: Any, includes: List[str] = None, exclude_regex: str = '_.
     :param exclude_regex: matched funcs will not be hooked
     :param injection: your hook class
     :param injection_data: data to insert into hook class
+    :param replace: replace instead of hook original object
     :return: hooker object
     """
-    target_object = Target(target, includes, exclude_regex, injection, injection_data)
+    target_object = Target(target, includes, exclude_regex, injection, injection_data, replace)
     return ApiHooker(target_object)
 
 
