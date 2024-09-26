@@ -129,7 +129,10 @@ class Target:
         self.name = name
         self.includes = includes
         self.exclude_regex = re.compile(exclude_regex)
-        self.injection = self.parse_injection(injection)
+        if replace:
+            self.injection = injection
+        else:
+            self.injection = self.parse_injection(injection)
         self.injection_data = injection_data
         self.replace = replace
 
