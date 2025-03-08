@@ -263,7 +263,8 @@ def _hook_wrapper(target: Target, cls=''):
 
 def global_search_module_attr(attr_name, attr, project_module_name=None):
     # you have to replace attr with new_attr in all modules, so new_attr will make effect in all files
-    for module_name, module_pack in sys.modules.items():
+    for module_name in sys.modules.keys():
+        module_pack = sys.modules[module_name]
         if module_name.startswith('_'):
             continue
         if project_module_name and not module_name.startswith(project_module_name):
